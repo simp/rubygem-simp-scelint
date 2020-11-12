@@ -83,7 +83,13 @@ module Scelint
     end
 
     def check_keys(file, data)
-      ok = ['version', 'profiles', 'ce', 'checks']
+      ok = [
+        'version',
+        'profiles',
+        'ce',
+        'checks',
+        'controls',
+      ]
 
       data.keys.each do |key|
         @warnings << "Unexpected key '#{key}' found in #{file}." unless ok.include?(key)
@@ -99,18 +105,22 @@ module Scelint
     end
 
     def check_controls(file, data)
-      @warnings << "Bad controls #{data} in #{file}." unless data.is_a?(Hash)
-
-      data.each do |key, value|
-        @warnings << "Bad control #{key} in #{file}." unless key.is_a?(String) && value # Should be truthy
+      if data.is_a?(Hash)
+        data.each do |key, value|
+          @warnings << "Bad control #{key} in #{file}." unless key.is_a?(String) && value # Should be truthy
+        end
+      else
+        @warnings << "Bad controls #{data} in #{file}."
       end
     end
 
     def check_profile_ces(file, data)
-      @warnings << "Bad ces #{data} in #{file}." unless data.is_a?(Hash)
-
-      data.each do |key, value|
-        @warnings << "Bad ce #{key} in #{file}." unless key.is_a?(String) && value.is_a?(TrueClass)
+      if data.is_a?(Hash)
+        data.each do |key, value|
+          @warnings << "Bad ce #{key} in #{file}." unless key.is_a?(String) && value.is_a?(TrueClass)
+        end
+      else
+        @warnings << "Bad ces #{data} in #{file}."
       end
     end
 
@@ -119,21 +129,28 @@ module Scelint
     end
 
     def check_identifiers(file, data)
-      @warnings << "Bad identifiers #{data} in #{file}." unless data.is_a?(Hash)
-
-      data.each do |key, value|
-        @warnings << "Bad identifier #{key} in #{file}." unless key.is_a?(String) && value.is_a?(Array)
-        value.each do |identifier|
-          @warnings << "Bad identifier #{identifier} in #{file}." unless identifier.is_a?(String)
+      if data.is_a?(Hash)
+        data.each do |key, value|
+          if key.is_a?(String) && value.is_a?(Array)
+            value.each do |identifier|
+              @warnings << "Bad identifier #{identifier} in #{file}." unless identifier.is_a?(String)
+            end
+          else
+            @warnings << "Bad identifier #{key} in #{file}."
+          end
         end
+      else
+        @warnings << "Bad identifiers #{data} in #{file}."
       end
     end
 
     def check_oval_ids(file, data)
-      @warnings << "Bad oval-ids #{data} in #{file}." unless data.is_a?(Array)
-
-      data.each do |key|
-        @warnings << "Bad oval-id #{key} in #{file}." unless key.is_a?(String)
+      if data.is_a?(Array)
+        data.each do |key|
+          @warnings << "Bad oval-id #{key} in #{file}." unless key.is_a?(String)
+        end
+      else
+        @warnings << "Bad oval-ids #{data} in #{file}."
       end
     end
 
@@ -274,6 +291,7 @@ module Scelint
       check_profiles(file, data['profiles']) if data['profiles']
       check_ce(file, data['ce']) if data['ce']
       check_checks(file, data['checks']) if data['checks']
+      check_controls(file, data['controls']) if data['controls']
     end
   end
 end
