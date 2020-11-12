@@ -196,7 +196,16 @@ module Scelint
     end
 
     def check_type(file, check, data)
-      @warnings << "Unknown type '#{data}' found in #{file} (check '#{check}')." unless data == 'puppet-class-parameter'
+      @errors << "Unknown type '#{data}' found in #{file} (check '#{check}')." unless data == 'puppet-class-parameter'
+    end
+
+    def check_parameter(file, check, parameter)
+      @errors << "Invalid parameter #{parameter} in #{file} (check '#{check}')." unless parameter.is_a?(String) && !parameter.empty?
+    end
+
+    def check_value(file, check, value)
+      # value could be anything
+      true
     end
 
     def check_settings(file, check, data)
@@ -205,6 +214,18 @@ module Scelint
       if data.nil?
         @errors << "Missing settings in check '#{check}' in #{file}."
         return false
+      end
+
+      if data.key?('parameter')
+        check_parameter(file, check, data['parameter'])
+      else
+        @errors << "Missing parameter in #{file} (check '#{check}')."
+      end
+
+      if data.key?('value')
+        check_value(file, check, data['value'])
+      else
+        @errors << "Missing parameter in #{file} (check '#{check}')."
       end
 
       data.keys.each do |key|
