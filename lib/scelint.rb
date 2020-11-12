@@ -202,6 +202,11 @@ module Scelint
     def check_settings(file, check, data)
       ok = ['parameter', 'value']
 
+      if data.nil?
+        @errors << "Missing settings in check '#{check}' in #{file}."
+        return false
+      end
+
       data.keys.each do |key|
         @warnings << "Unexpected key '#{key}' found in #{file} (check '#{check}')." unless ok.include?(key)
       end
@@ -231,8 +236,8 @@ module Scelint
           @warnings << "Unexpected key '#{key}' found in #{file} (check '#{check}')." unless ok.include?(key)
         end
 
-        check_type(file, check, value['type']) if value['type']
-        check_settings(file, check, value['settings']) if value['settings']
+        check_type(file, check, value['type']) if value['type'] || file == 'merged data'
+        check_settings(file, check, value['settings']) if value['settings'] || file == 'merged data'
         check_controls(file, value['controls']) unless value['controls'].nil?
         check_identifiers(file, value['identifiers']) unless value['identifiers'].nil?
         check_oval_ids(file, value['oval-ids']) unless value['oval-ids'].nil?
