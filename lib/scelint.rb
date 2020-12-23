@@ -270,6 +270,11 @@ module Scelint
       ]
 
       data.each do |check, value|
+        if value.nil?
+          @warnings << "Empty value in check #{check} (file #{file})."
+          next
+        end
+
         value.keys.each do |key|
           @warnings << "Unexpected key '#{key}' found in #{file} (check '#{check}')." unless ok.include?(key)
         end
