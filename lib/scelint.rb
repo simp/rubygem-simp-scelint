@@ -124,6 +124,16 @@ module Scelint
       end
     end
 
+    def check_profile_checks(file, data)
+      if data.is_a?(Hash)
+        data.each do |key, value|
+          @warnings << "Bad check #{key} in #{file}." unless key.is_a?(String) && value.is_a?(TrueClass)
+        end
+      else
+        @warnings << "Bad checks #{data} in #{file}."
+      end
+    end
+
     def check_confine(file, data)
       @warnings << "Bad confine #{data} in #{file}." unless data.is_a?(Hash)
     end
@@ -170,6 +180,7 @@ module Scelint
         'description',
         'controls',
         'ces',
+        'checks',
         'confine',
       ]
 
@@ -182,6 +193,7 @@ module Scelint
         check_description(file, value['description']) unless value['description'].nil?
         check_controls(file, value['controls']) unless value['controls'].nil?
         check_profile_ces(file, value['ces']) unless value['ces'].nil?
+        check_profile_checks(file, value['checks']) unless value['checks'].nil?
         check_confine(file, value['confine']) unless value['confine'].nil?
       end
     end
