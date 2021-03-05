@@ -79,7 +79,7 @@ module Scelint
     end
 
     def check_version(file, data)
-      @errors << "Version check failed in #{file}." unless data['version'] == '2.0.0'
+      @errors << "#{file}: version check failed" unless data['version'] == '2.0.0'
     end
 
     def check_keys(file, data)
@@ -92,50 +92,50 @@ module Scelint
       ]
 
       data.keys.each do |key|
-        @warnings << "Unexpected key '#{key}' found in #{file}." unless ok.include?(key)
+        @warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
       end
     end
 
     def check_title(file, data)
-      @warnings << "Bad title #{data} in #{file}." unless data.is_a?(String)
+      @warnings << "#{file}: bad title '#{data}'" unless data.is_a?(String)
     end
 
     def check_description(file, data)
-      @warnings << "Bad description #{data} in #{file}." unless data.is_a?(String)
+      @warnings << "#{file}: bad description '#{data}'" unless data.is_a?(String)
     end
 
     def check_controls(file, data)
       if data.is_a?(Hash)
         data.each do |key, value|
-          @warnings << "Bad control #{key} in #{file}." unless key.is_a?(String) && value # Should be truthy
+          @warnings << "#{file}: bad control '#{key}'" unless key.is_a?(String) && value # Should be truthy
         end
       else
-        @warnings << "Bad controls #{data} in #{file}."
+        @warnings << "#{file}: bad controls '#{data}'"
       end
     end
 
     def check_profile_ces(file, data)
       if data.is_a?(Hash)
         data.each do |key, value|
-          @warnings << "Bad ce #{key} in #{file}." unless key.is_a?(String) && value.is_a?(TrueClass)
+          @warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
         end
       else
-        @warnings << "Bad ces #{data} in #{file}."
+        @warnings << "#{file}: bad ces '#{data}'"
       end
     end
 
     def check_profile_checks(file, data)
       if data.is_a?(Hash)
         data.each do |key, value|
-          @warnings << "Bad check #{key} in #{file}." unless key.is_a?(String) && value.is_a?(TrueClass)
+          @warnings << "#{file}: bad check '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
         end
       else
-        @warnings << "Bad checks #{data} in #{file}."
+        @warnings << "#{file}: bad checks '#{data}'"
       end
     end
 
     def check_confine(file, data)
-      @warnings << "Bad confine #{data} in #{file}." unless data.is_a?(Hash)
+      @warnings << "#{file}: bad confine '#{data}'" unless data.is_a?(Hash)
     end
 
     def check_identifiers(file, data)
@@ -143,24 +143,24 @@ module Scelint
         data.each do |key, value|
           if key.is_a?(String) && value.is_a?(Array)
             value.each do |identifier|
-              @warnings << "Bad identifier #{identifier} in #{file}." unless identifier.is_a?(String)
+              @warnings << "#{file}: bad identifier '#{identifier}'" unless identifier.is_a?(String)
             end
           else
-            @warnings << "Bad identifier #{key} in #{file}."
+            @warnings << "#{file}: bad identifier '#{key}'"
           end
         end
       else
-        @warnings << "Bad identifiers #{data} in #{file}."
+        @warnings << "#{file}: bad identifiers '#{data}'"
       end
     end
 
     def check_oval_ids(file, data)
       if data.is_a?(Array)
         data.each do |key|
-          @warnings << "Bad oval-id #{key} in #{file}." unless key.is_a?(String)
+          @warnings << "#{file}: bad oval-id '#{key}'" unless key.is_a?(String)
         end
       else
-        @warnings << "Bad oval-ids #{data} in #{file}."
+        @warnings << "#{file}: bad oval-ids '#{data}'"
       end
     end
 
@@ -168,9 +168,9 @@ module Scelint
       ok = ['checktext', 'fixtext']
 
       data.each do |key, value|
-        @warnings << "Unexpected key '#{key}' found in #{file}" unless ok.include?(key)
+        @warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
 
-        @warnings << "Bad #{key} data in #{file}: '#{value}'" unless value.is_a?(String)
+        @warnings << "#{file} (key '#{key}'): bad data '#{value}'" unless value.is_a?(String)
       end
     end
 
@@ -186,7 +186,7 @@ module Scelint
 
       data.each do |profile, value|
         value.keys.each do |key|
-          @warnings << "Unexpected key '#{key}' found in #{file} (profile '#{profile}')." unless ok.include?(key)
+          @warnings << "#{file} (profile '#{profile}'): unexpected key '#{key}'" unless ok.include?(key)
         end
 
         check_title(file, value['title']) unless value['title'].nil?
@@ -211,7 +211,7 @@ module Scelint
 
       data.each do |ce, value|
         value.keys.each do |key|
-          @warnings << "Unexpected key '#{key}' found in #{file} (CE '#{ce}')." unless ok.include?(key)
+          @warnings << "#{file} (CE '#{ce}'): unexpected key '#{key}'" unless ok.include?(key)
         end
 
         check_title(file, value['title']) unless value['title'].nil?
@@ -225,11 +225,11 @@ module Scelint
     end
 
     def check_type(file, check, data)
-      @errors << "Unknown type '#{data}' found in #{file} (check '#{check}')." unless data == 'puppet-class-parameter'
+      @errors << "#{file} (check '#{check}'): unknown type '#{data}'" unless data == 'puppet-class-parameter'
     end
 
     def check_parameter(file, check, parameter)
-      @errors << "Invalid parameter #{parameter} in #{file} (check '#{check}')." unless parameter.is_a?(String) && !parameter.empty?
+      @errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'" unless parameter.is_a?(String) && !parameter.empty?
     end
 
     def check_value(file, check, value)
@@ -241,32 +241,32 @@ module Scelint
       ok = ['parameter', 'value']
 
       if data.nil?
-        @errors << "Missing settings in check '#{check}' in #{file}."
+        @errors << "#{file} (check '#{check}'): missing settings"
         return false
       end
 
       if data.key?('parameter')
         check_parameter(file, check, data['parameter'])
       else
-        @errors << "Missing parameter in #{file} (check '#{check}')."
+        @errors << "#{file} (check '#{check}'): missing parameter"
       end
 
       if data.key?('value')
         check_value(file, check, data['value'])
       else
-        @errors << "Missing parameter in #{file} (check '#{check}')."
+        @errors << "#{file} (check '#{check}'): missing parameter"
       end
 
       data.keys.each do |key|
-        @warnings << "Unexpected key '#{key}' found in #{file} (check '#{check}')." unless ok.include?(key)
+        @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
       end
     end
 
     def check_check_ces(file, data)
-      @warnings << "Bad ces #{data} in #{file}." unless data.is_a?(Array)
+      @warnings << "#{file}: bad ces '#{data}'" unless data.is_a?(Array)
 
       data.each do |key|
-        @warnings << "Bad ce #{key} in #{file}." unless key.is_a?(String)
+        @warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String)
       end
     end
 
@@ -283,12 +283,12 @@ module Scelint
 
       data.each do |check, value|
         if value.nil?
-          @warnings << "Empty value in check #{check} (file #{file})."
+          @warnings << "#{file} (check '#{check}'): empty value"
           next
         end
 
         value.keys.each do |key|
-          @warnings << "Unexpected key '#{key}' found in #{file} (check '#{check}')." unless ok.include?(key)
+          @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
         end
 
         check_type(file, check, value['type']) if value['type'] || file == 'merged data'
