@@ -207,6 +207,7 @@ module Scelint
         'oval-ids',
         'confine',
         'imported_data',
+        'notes',
       ]
 
       data.each do |ce, value|
