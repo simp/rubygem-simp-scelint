@@ -8,8 +8,14 @@ require 'scelint/version'
 
 module Scelint
   class Error < StandardError; end
-  # Your code goes here...
 
+  # Checks SCE data in the specified directories
+  # @example Look for data in the current directory (the default)
+  #    lint = Scelint::Lint.new()
+  # @example Look for data in `/path/to/module`
+  #    lint = Scelint::Lint.new('/path/to/module')
+  # @example Look for data in all modules in the current directory
+  #    lint = Scelint::Lint.new(Dir.glob('*'))
   class Lint
     def initialize(paths = ['.'])
       @data = {}
