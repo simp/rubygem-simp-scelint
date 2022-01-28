@@ -21,7 +21,7 @@ else
 
   message = "Checked #{count} files."
   if lint.errors.count == 0
-    message += "  No errors."
+    message += '  No errors.'
     exit_code = 0
   else
     message += "  #{lint.errors.count} errors."
