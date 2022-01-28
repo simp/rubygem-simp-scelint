@@ -233,6 +233,58 @@ module Scelint
       @errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'" unless parameter.is_a?(String) && !parameter.empty?
     end
 
+    def check_remediation(file, check, remediation_section)
+      
+      reason_ok = [
+        'reason'
+      ]
+
+      risk_ok = [
+        'level',
+        'reason'
+      ]
+
+      if remediation_section.is_a?(Hash)
+        remediation_section.each do |section, value|
+          #require 'pry-byebug'; binding.pry if section == 'disabled'
+          case section
+          when 'scan-false-positive', 'disabled'
+            value.each do |reason|
+              # If the element in the remediation section isn't a hash, it is incorrect.
+              if reason.is_a?(Hash)
+                # Check for unknown elements and warn the user rather than failing
+                (reason.keys - reason_ok).each do |unknown_element|
+                  @warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
+                end
+                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes." unless reason['reason'].is_a?(String)
+              else
+                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes."
+              end
+            end
+          when 'risk'
+            value.each do |risk|
+              # If the element in the remediation section isn't a hash, it is incorrect.
+              if risk.is_a?(Hash)
+                # Check for unknown elements and warn the user rather than failing
+                (risk.keys - risk_ok).each do |unknown_element|
+                  @warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
+                end
+                # Since reasons are optional here, we won't be checking for those
+
+                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons." unless risk['level'].is_a?(Integer)
+              else
+                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons."
+              end
+            end
+          else
+            @warnings << "#{file} (check '#{check}'): #{section} is not a recognized section within the remediation section"
+          end
+        end
+      else
+        @errors << "#{file} (check '#{check}'): malformed remediation section, expecting a hash."
+      end
+    end
+
     def check_value(file, check, value)
       # value could be anything
       true
@@ -280,6 +332,7 @@ module Scelint
         'oval-ids',
         'ces',
         'confine',
+        'remediation'
       ]
 
       data.each do |check, value|
@@ -288,12 +341,17 @@ module Scelint
           next
         end
 
-        value.keys.each do |key|
-          @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
+        if value.is_a?(Hash)
+          value.keys.each do |key|
+            @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
+          end
+        else
+          @errors << "#{file} (check '#{check}'): contains something other than a hash, this is most likely caused by a missing note or ce element under the check"
         end
 
         check_type(file, check, value['type']) if value['type'] || file == 'merged data'
         check_settings(file, check, value['settings']) if value['settings'] || file == 'merged data'
+        check_remediation(file, check, value['remediation']) if value['remediation'] unless value['remediation'].nil?
         check_controls(file, value['controls']) unless value['controls'].nil?
         check_identifiers(file, value['identifiers']) unless value['identifiers'].nil?
         check_oval_ids(file, value['oval-ids']) unless value['oval-ids'].nil?
