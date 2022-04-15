@@ -64,12 +64,17 @@ module Scelint
              when %r{\.json$}
                'json'
              else
+               @errors << "#{file}: Failed to determine file type"
                nil
              end
-      return YAML.safe_load(File.read(file)) if type == 'yaml'
-      return JSON.parse(File.read(file)) if type == 'json'
+      begin
+        return YAML.safe_load(File.read(file)) if type == 'yaml'
+        return JSON.parse(File.read(file)) if type == 'json'
+      rescue => e
+        @errors << "#{file}: Failed to parse file: #{e.message}"
+      end
 
-      raise "Failed to determine file type of '#{file}'"
+      {}
     end
 
     def files
