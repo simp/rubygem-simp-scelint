@@ -307,13 +307,13 @@ module Scelint
       if data.key?('parameter')
         check_parameter(file, check, data['parameter'])
       else
-        @errors << "#{file} (check '#{check}'): missing parameter"
+        @errors << "#{file} (check '#{check}'): missing key 'parameter'"
       end
 
       if data.key?('value')
         check_value(file, check, data['value'])
       else
-        @errors << "#{file} (check '#{check}'): missing parameter"
+        @errors << "#{file} (check '#{check}'): missing key 'value'"
       end
 
       data.each_key do |key|

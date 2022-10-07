@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+checks:
+  04_string check1:
+    settings:
+      value: string value 1

@@ -1,0 +1,17 @@
+---
+version: 2.0.0
+checks:
+  06_check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_06::test_param
+      value: a string
+    ces:
+    - 06_ce1
+  06_check2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_06::test_param2
+      value: another string
+    ces:
+    - 06_ce1

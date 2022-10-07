@@ -1,0 +1,31 @@
+---
+version: 2.0.0
+checks:
+  01_el_check:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_01::is_el
+      value: true
+    ces:
+    - 01_ce2
+    confine:
+      os.family: RedHat
+  01_el7_check:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_01::el_version
+      value: '7'
+    ces:
+    - 01_ce2
+    confine:
+      os.name:
+      - RedHat
+      - CentOS
+      os.release.major: '7'
+  01_confine_in_ces:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_01::fixed_confines
+      value: false
+    ces:
+    - 01_ce3

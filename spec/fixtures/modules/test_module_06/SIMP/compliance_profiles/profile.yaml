@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+profiles:
+  06_profile_test:
+    controls:
+      06_control1: true

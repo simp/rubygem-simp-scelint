@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+ce:
+  00_ce1:
+    controls:
+      00_control1: true

@@ -1,0 +1,7 @@
+---
+version: 2.0.0
+checks:
+  04_hash check2:
+    type: puppet-class-parameter
+    oval-ids:
+    - 04_oval_id3

@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+checks:
+  04_hash check1:
+    settings:
+      parameter: test_module_04::hash_param

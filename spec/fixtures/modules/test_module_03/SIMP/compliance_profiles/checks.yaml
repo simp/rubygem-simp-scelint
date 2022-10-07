@@ -1,0 +1,68 @@
+---
+version: 2.0.0
+checks:
+  03_string check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::string_param
+      value: string value 1
+    ces:
+    - 03_profile_test1
+  03_string check2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::string_param
+      value: string value 2
+    ces:
+    - 03_profile_test2
+  03_array check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::array_param
+      value:
+      - array value 1
+    ces:
+    - 03_profile_test1
+  03_array check2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::array_param
+      value:
+      - array value 2
+    ces:
+    - 03_profile_test2
+  03_hash check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::hash_param
+      value:
+        hash key 1: hash value 1
+    ces:
+    - 03_profile_test1
+  03_hash check2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::hash_param
+      value:
+        hash key 2: hash value 2
+    ces:
+    - 03_profile_test2
+  03_nested hash1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::nested_hash
+      value:
+        key:
+          key1: value1
+    ces:
+    - 03_profile_test1
+  03_nested hash2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_03::nested_hash
+      value:
+        key:
+          key1: value2
+          key2: value2
+    ces:
+    - 03_profile_test2

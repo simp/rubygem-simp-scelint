@@ -1,0 +1,7 @@
+---
+version: 2.0.0
+checks:
+  04_array check2:
+    settings:
+      value:
+      - array value 2

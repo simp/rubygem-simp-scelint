@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+checks:
+  04_nested hash2:
+    ces:
+    - 04_profile_test2

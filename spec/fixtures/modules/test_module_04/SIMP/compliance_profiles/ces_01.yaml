@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+ce:
+  04_profile_test2:
+    identifiers:
+      04_identifier1: []
