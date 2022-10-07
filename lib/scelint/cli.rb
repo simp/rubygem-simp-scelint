@@ -14,7 +14,7 @@ class Scelint::CLI < Thor
   option :strict, type: :boolean, aliases: '-s', default: false
   def lint(*paths)
     paths = ['.'] if paths.nil? || paths.empty?
-    lint = Scelint::Lint.new(paths)
+    lint = Scelint::Lint.new(paths, logger: logger)
 
     count = lint.files.count
 
@@ -31,6 +31,10 @@ class Scelint::CLI < Thor
       logger.warn warning
     end
 
+    lint.notes.each do |note|
+      logger.info note
+    end
+
     message = "Checked #{count} files."
     if lint.errors.count == 0
       message += '  No errors.'
@@ -44,6 +48,8 @@ class Scelint::CLI < Thor
       message += "  #{lint.warnings.count} warnings."
       exit_code = 1 if options[:strict]
     end
+
+    message += " #{lint.notes.count} notes." if lint.notes.count > 0
 
     logger.info message
     exit exit_code

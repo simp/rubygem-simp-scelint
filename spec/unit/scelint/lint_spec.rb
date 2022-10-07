@@ -3,11 +3,12 @@
 require 'spec_helper'
 
 RSpec.describe Scelint::Lint do
-  # Each test assumes 3 files, no errors, no warnings.
+  # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
-  let(:lint_files) { { '04' => 37 } }
+  let(:lint_files) { { '04' => 37, '11' => 2 } }
   let(:lint_errors) { {} }
   let(:lint_warnings) { { '04' => 17 } }
+  let(:lint_notes) { { '11' => 1 } }
 
   test_modules = Dir.glob(File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_*'))
   test_modules.each do |test_module|
@@ -26,13 +27,6 @@ RSpec.describe Scelint::Lint do
         expect(lint.files.count).to eq(lint_files[index] || 3)
       end
 
-      it 'has the expected data' do
-        lint.files.each do |file|
-          require 'yaml'
-          expect(lint.data[file]).to eq(YAML.safe_load(File.read(file)))
-        end
-      end
-
       it 'has expected errors' do
         expect(lint.errors).to be_instance_of(Array)
         pp lint.errors if lint.errors.count != (lint_errors[index] || 0)
@@ -43,6 +37,12 @@ RSpec.describe Scelint::Lint do
         expect(lint.warnings).to be_instance_of(Array)
         pp lint.warnings if lint.warnings.count != (lint_warnings[index] || 0)
         expect(lint.warnings.count).to eq(lint_warnings[index] || 0)
+      end
+
+      it 'has expected notes' do
+        expect(lint.notes).to be_instance_of(Array)
+        pp lint.notes if lint.notes.count != (lint_notes[index] || 0)
+        expect(lint.notes.count).to eq(lint_notes[index] || 0)
       end
     end
   end
@@ -68,6 +68,12 @@ RSpec.describe Scelint::Lint do
         lint_warnings[index] || 0
       end
     end
+    let(:total_notes) do
+      test_modules.sum do |test_module|
+        index = File.basename(test_module).delete_prefix('test_module_')
+        lint_notes[index] || 0
+      end
+    end
 
     it 'initializes' do
       expect(lint).to be_instance_of(described_class)
@@ -89,6 +95,13 @@ RSpec.describe Scelint::Lint do
       expect(lint.warnings).to be_instance_of(Array)
       pp lint.warnings if lint.warnings.count != total_warnings
       expect(lint.warnings.count).to eq(total_warnings)
+    end
+
+    it 'has expected notes' do
+      pending "The number of notes isn't a simple addition."
+      expect(lint.notes).to be_instance_of(Array)
+      pp lint.notes if lint.notes.count != total_notes
+      expect(lint.notes.count).to eq(total_notes)
     end
   end
 end

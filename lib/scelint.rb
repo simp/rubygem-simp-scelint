@@ -3,6 +3,8 @@
 require 'yaml'
 require 'json'
 require 'deep_merge'
+require 'logger'
+require 'compliance_engine'
 
 require 'scelint/version'
 
@@ -126,68 +128,25 @@ module Scelint
   # @example Look for data in all modules in the current directory
   #    lint = Scelint::Lint.new(Dir.glob('*'))
   class Lint
-    attr_accessor :data, :errors, :warnings
+    attr_accessor :data, :errors, :warnings, :notes, :log
 
-    def initialize(paths = ['.'])
-      @data = {}
+    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO))
+      @log = logger
       @errors = []
       @warnings = []
+      @notes = []
 
-      merged_data = {}
+      @data = ComplianceEngine::Data.new(*Array(paths))
 
-      Array(paths).each do |path|
-        if File.directory?(path)
-          [
-            'SIMP/compliance_profiles',
-            'simp/compliance_profiles',
-          ].each do |dir|
-            ['yaml', 'json'].each do |type|
-              Dir.glob("#{path}/#{dir}/**/*.#{type}") do |file|
-                @data[file] = parse(file)
-                merged_data = merged_data.deep_merge!(Marshal.load(Marshal.dump(@data[file])))
-              end
-            end
-          end
-        elsif File.exist?(path)
-          @data[path] = parse(path)
-        else
-          raise "Can't find path '#{path}'"
-        end
+      @data.files.each do |file|
+        lint(file, @data.get(file))
       end
 
-      return nil if @data.empty?
-
-      @data['merged data'] = merged_data
-
-      @data.each do |file, file_data|
-        lint(file, file_data)
-      end
-    end
-
-    def parse(file)
-      return data[file] if data[file]
-
-      type = case file
-             when %r{\.yaml$}
-               'yaml'
-             when %r{\.json$}
-               'json'
-             else
-               errors << "#{file}: Failed to determine file type"
-               nil
-             end
-      begin
-        return YAML.safe_load(File.read(file)) if type == 'yaml'
-        return JSON.parse(File.read(file)) if type == 'json'
-      rescue => e
-        errors << "#{file}: Failed to parse file: #{e.message}"
-      end
-
-      {}
+      validate
     end
 
     def files
-      data.keys - ['merged data']
+      data.files
     end
 
     def check_version(file, file_data)
@@ -265,7 +224,10 @@ module Scelint
 
       file_data.each_key do |key|
         warnings << "#{file}: unexpected key '#{key}' in confine '#{file_data}'" if not_ok.include?(key)
-        warnings << "#{file}: legacy fact '#{key}' in confine '#{file_data}'" if Scelint::LEGACY_FACTS.any? { |legacy_fact| legacy_fact.is_a?(Regexp) ? legacy_fact.match?(key) : (legacy_fact == key) }
+        if Scelint::LEGACY_FACTS.any? { |legacy_fact| legacy_fact.is_a?(Regexp) ? legacy_fact.match?(key) : (legacy_fact == key) }
+          warning = "#{file}: legacy fact '#{key}' in confine '#{file_data}'"
+          warnings << warning unless warnings.include?(warning)
+        end
       end
     end
 
@@ -508,6 +470,100 @@ module Scelint
       end
     end
 
+    def normalize_confinement(confine)
+      normalized = []
+
+      # Step 1, sort the hash keys
+      sorted = confine.sort.to_h
+
+      # Step 2, expand all possible combinations of Array values
+      index = 0
+      max_count = 1
+      sorted.each_value { |value| max_count *= Array(value).size }
+
+      sorted.each do |key, value|
+        (index..(max_count - 1)).each do |i|
+          normalized[i] ||= {}
+          normalized[i][key] = Array(value)[i % Array(value).size]
+        end
+      end
+
+      # Step 3, convert dotted fact names into a facts hash
+      normalized.map do |c|
+        c.each_with_object({}) do |(key, value), result|
+          current = result
+          parts = key.split('.')
+          parts.each_with_index do |part, i|
+            if i == parts.length - 1
+              current[part] = value
+            else
+              current[part] ||= {}
+              current = current[part]
+            end
+          end
+        end
+      end
+    end
+
+    def confines
+      return @confines unless @confines.nil?
+
+      @confines = []
+
+      [:profiles, :ces, :checks, :controls].each do |type|
+        data.public_send(type).each_value do |value|
+          # FIXME: This is calling a private method
+          value.send(:fragments).each_value do |v|
+            next unless v.is_a?(Hash)
+            next unless v.key?('confine')
+            normalize_confinement(v['confine']).each do |confine|
+              @confines << confine unless @confines.include?(confine)
+            end
+          end
+        end
+      end
+
+      @confines
+    end
+
+    def validate
+      if data.profiles.keys.empty?
+        notes << 'No profiles found, unable to validate Hiera data'
+        return nil
+      end
+
+      # Unconfined, verify that hiera data exists
+      data.profiles.each_key do |profile|
+        hiera = data.hiera([profile])
+        if hiera.nil?
+          errors << "Profile '#{profile}': Invalid Hiera data (returned nil)"
+          next
+        end
+        if hiera.empty?
+          warnings << "Profile '#{profile}': No Hiera data found"
+          next
+        end
+        log.debug "Profile '#{profile}': Hiera data found (#{hiera.keys.count} keys)"
+      end
+
+      # Again, this time confined
+      confines.each do |confine|
+        data.facts = confine
+        data.profiles.select { |_, value| value.ces&.count&.positive? || value.controls&.count&.positive? }.each_key do |profile|
+          hiera = data.hiera([profile])
+          if hiera.nil?
+            errors << "Profile '#{profile}': Invalid Hiera data (returned nil) with facts #{confine}"
+            next
+          end
+          if hiera.empty?
+            warnings << "Profile '#{profile}': No Hiera data found with facts #{confine}"
+            next
+          end
+          log.debug "Profile '#{profile}': Hiera data found (#{hiera.keys.count} keys) with facts #{confine}"
+        end
+      end
+    end
+
     def lint(file, file_data)
       check_version(file, file_data)
       check_keys(file, file_data)
@@ -516,6 +572,8 @@ module Scelint
       check_ce(file, file_data['ce']) if file_data['ce']
       check_checks(file, file_data['checks']) if file_data['checks']
       check_controls(file, file_data['controls']) if file_data['controls']
+    rescue => e
+      errors << "#{file}: #{e.message} (not a hash?)"
     end
   end
 end
