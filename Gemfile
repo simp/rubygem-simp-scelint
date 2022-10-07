@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '~> 13.2'
+gem 'compliance_engine', git: 'https://github.com/simp/rubygem-simp-compliance_engine.git'
 
 group :tests do
   gem 'rspec', '~> 3.13'
@@ -14,6 +15,7 @@ group :tests do
 end
 
 group :development do
-  gem 'pry'
-  gem 'pry-byebug'
+  gem 'pry', '~> 0.14.1'
+  gem 'pry-byebug', '~> 3.10'
+  gem 'rdoc', '~> 6.4'
 end
