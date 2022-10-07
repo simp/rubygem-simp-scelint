@@ -1,0 +1,9 @@
+---
+version: 2.0.0
+profiles:
+  00_profile_test:
+    controls:
+      00_control1: true
+  00_profile_with_check_reference:
+    checks:
+      00_check2: true

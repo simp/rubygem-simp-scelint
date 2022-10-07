@@ -10,28 +10,29 @@ count = lint.files.count
 
 if count.zero?
   warn 'No SCE data found.'
-else
-  lint.errors.each do |error|
-    warn error
-  end
-
-  lint.warnings.each do |warning|
-    warn warning
-  end
-
-  message = "Checked #{count} files."
-  if lint.errors.count == 0
-    message += '  No errors.'
-    exit_code = 0
-  else
-    message += "  #{lint.errors.count} errors."
-    exit_code = 1
-  end
-
-  if lint.warnings.count > 0
-    message += "  #{lint.warnings.count} warnings."
-  end
-
-  puts message
-  exit exit_code
+  exit 0
 end
+
+lint.errors.each do |error|
+  warn error
+end
+
+lint.warnings.each do |warning|
+  warn warning
+end
+
+message = "Checked #{count} files."
+if lint.errors.count == 0
+  message += '  No errors.'
+  exit_code = 0
+else
+  message += "  #{lint.errors.count} errors."
+  exit_code = 1
+end
+
+if lint.warnings.count > 0
+  message += "  #{lint.warnings.count} warnings."
+end
+
+puts message
+exit exit_code

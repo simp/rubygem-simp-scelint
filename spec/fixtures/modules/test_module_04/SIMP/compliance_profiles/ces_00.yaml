@@ -1,0 +1,8 @@
+---
+version: 2.0.0
+ce:
+  04_profile_test1:
+    controls:
+      04_control1: true
+    oval-ids:
+    - 04_oval_id1

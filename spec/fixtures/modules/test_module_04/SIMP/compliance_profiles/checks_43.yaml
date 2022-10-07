@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+checks:
+  04_hash check1:
+    type: puppet-class-parameter

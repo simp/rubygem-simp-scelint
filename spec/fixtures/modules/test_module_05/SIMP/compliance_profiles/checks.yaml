@@ -1,0 +1,19 @@
+---
+version: 2.0.0
+checks:
+  05_hash check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_05::hash_param
+      value:
+        hash key 1: hash value 1
+    ces:
+    - 05_profile_test1
+  05_hash check2:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_05::hash_param
+      value:
+        hash key 2: hash value 2
+    ces:
+    - 05_profile_test2

@@ -1,0 +1,9 @@
+---
+version: 2.0.0
+checks:
+  04_hash check1:
+    settings:
+      value:
+        hash key 1: hash value 1
+    identifiers:
+      04_identifier3: []

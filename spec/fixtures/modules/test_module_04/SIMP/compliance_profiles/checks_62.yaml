@@ -1,0 +1,8 @@
+---
+version: 2.0.0
+checks:
+  04_nested hash1:
+    settings:
+      value:
+        key:
+          key1: value1

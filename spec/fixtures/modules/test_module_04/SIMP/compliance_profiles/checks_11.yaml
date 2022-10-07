@@ -1,0 +1,8 @@
+---
+version: 2.0.0
+checks:
+  04_string check2:
+    settings:
+      value: string value 2
+    identifiers:
+      04_identifier2: []

@@ -1,0 +1,15 @@
+---
+version: 2.0.0
+ce:
+  01_ce1:
+    controls:
+      01_control1: true
+  01_ce2:
+    controls:
+      01_os_control: true
+  01_ce3:
+    controls:
+      01_control1: true
+    confine:
+      module_name: simp-compliance_markup
+      module_version: "< 3.1.0"

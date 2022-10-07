@@ -1,0 +1,7 @@
+---
+version: 2.0.0
+profiles:
+  01_profile_test:
+    controls:
+      01_control1: true
+      01_os_control: true

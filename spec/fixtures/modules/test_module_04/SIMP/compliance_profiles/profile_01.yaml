@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+profiles:
+  profile_test2:
+    ces:
+      04_profile_test2: true

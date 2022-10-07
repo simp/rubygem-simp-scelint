@@ -1,0 +1,8 @@
+---
+version: 2.0.0
+checks:
+  04_array check2:
+    settings:
+      parameter: test_module_04::array_param
+    controls:
+      04_control3: true
