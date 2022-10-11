@@ -520,13 +520,7 @@ Style/RedundantArgument:
   Enabled: false
 Style/SwapValues:
   Enabled: false
-Gemspec/DeprecatedAttributeAssignment:
-  Enabled: false
 Gemspec/RequireMFA:
-  Enabled: false
-Layout/LineContinuationLeadingSpace:
-  Enabled: false
-Layout/LineContinuationSpacing:
   Enabled: false
 Layout/LineEndStringConcatenationIndentation:
   Enabled: false
@@ -538,8 +532,6 @@ Lint/AmbiguousOperatorPrecedence:
   Enabled: true
 Lint/AmbiguousRange:
   Enabled: true
-Lint/ConstantOverwrittenInRescue:
-  Enabled: true
 Lint/DeprecatedConstants:
   Enabled: true
 Lint/EmptyInPattern:
@@ -548,8 +540,6 @@ Lint/IncompatibleIoSelectWithFiberScheduler:
   Enabled: true
 Lint/LambdaWithoutLiteralBlock:
   Enabled: true
-Lint/NonAtomicFileOperation:
-  Enabled: true
 Lint/NumberedParameterAssignment:
   Enabled: true
 Lint/OrAssignmentToConstant:
@@ -557,8 +547,6 @@ Lint/OrAssignmentToConstant:
 Lint/RedundantDirGlobSort:
   Enabled: true
 Lint/RefinementImportMethods:
-  Enabled: true
-Lint/RequireRangeParentheses:
   Enabled: true
 Lint/RequireRelativeSelfPath:
   Enabled: true
@@ -574,11 +562,7 @@ Security/CompoundHash:
   Enabled: true
 Security/IoMethods:
   Enabled: true
-Style/EmptyHeredoc:
-  Enabled: true
 Style/EndlessMethod:
-  Enabled: true
-Style/EnvHome:
   Enabled: true
 Style/FetchEnvVar:
   Enabled: true
@@ -593,10 +577,6 @@ Style/HashExcept:
 Style/IfWithBooleanLiteralBranches:
   Enabled: true
 Style/InPatternThen:
-  Enabled: true
-Style/MagicCommentFormat:
-  Enabled: true
-Style/MapCompactWithConditionalBlock:
   Enabled: true
 Style/MapToHash:
   Enabled: true
@@ -636,27 +616,15 @@ RSpec/BeEq:
   Enabled: true
 RSpec/BeNil:
   Enabled: true
-RSpec/ChangeByZero:
-  Enabled: true
-RSpec/ClassCheck:
-  Enabled: true
 RSpec/ExcessiveDocstringSpacing:
   Enabled: true
 RSpec/IdenticalEqualityAssertion:
-  Enabled: true
-RSpec/NoExpectationExample:
   Enabled: true
 RSpec/SubjectDeclaration:
   Enabled: true
 RSpec/VerifiedDoubleReference:
   Enabled: true
-RSpec/Capybara/SpecificFinders:
-  Enabled: false
-RSpec/Capybara/SpecificMatcher:
-  Enabled: false
 RSpec/FactoryBot/SyntaxMethods:
   Enabled: false
 RSpec/Rails/AvoidSetupHook:
-  Enabled: false
-RSpec/Rails/HaveHttpStatus:
   Enabled: false
