@@ -17,6 +17,8 @@ module Scelint
   # @example Look for data in all modules in the current directory
   #    lint = Scelint::Lint.new(Dir.glob('*'))
   class Lint
+    attr_accessor :data, :errors, :warnings
+
     def initialize(paths = ['.'])
       @data = {}
       @errors = []
@@ -31,9 +33,9 @@ module Scelint
             'simp/compliance_profiles',
           ].each do |dir|
             ['yaml', 'json'].each do |type|
-              Dir.glob("#{path}/#{dir}/**/*.#{type}").each do |file|
+              Dir.glob("#{path}/#{dir}/**/*.#{type}") do |file|
                 @data[file] = parse(file)
-                merged_data = merged_data.deep_merge!(@data[file])
+                merged_data = merged_data.deep_merge!(Marshal.load(Marshal.dump(@data[file])))
               end
             end
           end
@@ -48,15 +50,13 @@ module Scelint
 
       @data['merged data'] = merged_data
 
-      @data.each do |file, data|
-        lint(file, data)
+      @data.each do |file, file_data|
+        lint(file, file_data)
       end
-
-      @data # rubocop:disable Lint/Void
     end
 
     def parse(file)
-      return @data[file] if @data[file]
+      return data[file] if data[file]
 
       type = case file
              when %r{\.yaml$}
@@ -64,32 +64,28 @@ module Scelint
              when %r{\.json$}
                'json'
              else
-               @errors << "#{file}: Failed to determine file type"
+               errors << "#{file}: Failed to determine file type"
                nil
              end
       begin
         return YAML.safe_load(File.read(file)) if type == 'yaml'
         return JSON.parse(File.read(file)) if type == 'json'
       rescue => e
-        @errors << "#{file}: Failed to parse file: #{e.message}"
+        errors << "#{file}: Failed to parse file: #{e.message}"
       end
 
       {}
     end
 
     def files
-      @data.keys - ['merged data']
+      data.keys - ['merged data']
     end
 
-    attr_reader :warnings
-
-    attr_reader :errors
-
-    def check_version(file, data)
-      @errors << "#{file}: version check failed" unless data['version'] == '2.0.0'
+    def check_version(file, file_data)
+      errors << "#{file}: version check failed" unless file_data['version'] == '2.0.0'
     end
 
-    def check_keys(file, data)
+    def check_keys(file, file_data)
       ok = [
         'version',
         'profiles',
@@ -98,90 +94,90 @@ module Scelint
         'controls',
       ]
 
-      data.each_key do |key|
-        @warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
+      file_data.each_key do |key|
+        warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
       end
     end
 
-    def check_title(file, data)
-      @warnings << "#{file}: bad title '#{data}'" unless data.is_a?(String)
+    def check_title(file, file_data)
+      warnings << "#{file}: bad title '#{file_data}'" unless file_data.is_a?(String)
     end
 
-    def check_description(file, data)
-      @warnings << "#{file}: bad description '#{data}'" unless data.is_a?(String)
+    def check_description(file, file_data)
+      warnings << "#{file}: bad description '#{file_data}'" unless file_data.is_a?(String)
     end
 
-    def check_controls(file, data)
-      if data.is_a?(Hash)
-        data.each do |key, value|
-          @warnings << "#{file}: bad control '#{key}'" unless key.is_a?(String) && value # Should be truthy
+    def check_controls(file, file_data)
+      if file_data.is_a?(Hash)
+        file_data.each do |key, value|
+          warnings << "#{file}: bad control '#{key}'" unless key.is_a?(String) && value # Should be truthy
         end
       else
-        @warnings << "#{file}: bad controls '#{data}'"
+        warnings << "#{file}: bad controls '#{file_data}'"
       end
     end
 
-    def check_profile_ces(file, data)
-      if data.is_a?(Hash)
-        data.each do |key, value|
-          @warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
+    def check_profile_ces(file, file_data)
+      if file_data.is_a?(Hash)
+        file_data.each do |key, value|
+          warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
         end
       else
-        @warnings << "#{file}: bad ces '#{data}'"
+        warnings << "#{file}: bad ces '#{file_data}'"
       end
     end
 
-    def check_profile_checks(file, data)
-      if data.is_a?(Hash)
-        data.each do |key, value|
-          @warnings << "#{file}: bad check '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
+    def check_profile_checks(file, file_data)
+      if file_data.is_a?(Hash)
+        file_data.each do |key, value|
+          warnings << "#{file}: bad check '#{key}'" unless key.is_a?(String) && value.is_a?(TrueClass)
         end
       else
-        @warnings << "#{file}: bad checks '#{data}'"
+        warnings << "#{file}: bad checks '#{file_data}'"
       end
     end
 
-    def check_confine(file, data)
-      @warnings << "#{file}: bad confine '#{data}'" unless data.is_a?(Hash)
+    def check_confine(file, file_data)
+      warnings << "#{file}: bad confine '#{file_data}'" unless file_data.is_a?(Hash)
     end
 
-    def check_identifiers(file, data)
-      if data.is_a?(Hash)
-        data.each do |key, value|
+    def check_identifiers(file, file_data)
+      if file_data.is_a?(Hash)
+        file_data.each do |key, value|
           if key.is_a?(String) && value.is_a?(Array)
             value.each do |identifier|
-              @warnings << "#{file}: bad identifier '#{identifier}'" unless identifier.is_a?(String)
+              warnings << "#{file}: bad identifier '#{identifier}'" unless identifier.is_a?(String)
             end
           else
-            @warnings << "#{file}: bad identifier '#{key}'"
+            warnings << "#{file}: bad identifier '#{key}'"
           end
         end
       else
-        @warnings << "#{file}: bad identifiers '#{data}'"
+        warnings << "#{file}: bad identifiers '#{file_data}'"
       end
     end
 
-    def check_oval_ids(file, data)
-      if data.is_a?(Array)
-        data.each do |key|
-          @warnings << "#{file}: bad oval-id '#{key}'" unless key.is_a?(String)
+    def check_oval_ids(file, file_data)
+      if file_data.is_a?(Array)
+        file_data.each do |key|
+          warnings << "#{file}: bad oval-id '#{key}'" unless key.is_a?(String)
         end
       else
-        @warnings << "#{file}: bad oval-ids '#{data}'"
+        warnings << "#{file}: bad oval-ids '#{file_data}'"
       end
     end
 
-    def check_imported_data(file, data)
+    def check_imported_data(file, file_data)
       ok = ['checktext', 'fixtext']
 
-      data.each do |key, value|
-        @warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
+      file_data.each do |key, value|
+        warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
 
-        @warnings << "#{file} (key '#{key}'): bad data '#{value}'" unless value.is_a?(String)
+        warnings << "#{file} (key '#{key}'): bad data '#{value}'" unless value.is_a?(String)
       end
     end
 
-    def check_profiles(file, data)
+    def check_profiles(file, file_data)
       ok = [
         'title',
         'description',
@@ -191,9 +187,9 @@ module Scelint
         'confine',
       ]
 
-      data.each do |profile, value|
+      file_data.each do |profile, value|
         value.each_key do |key|
-          @warnings << "#{file} (profile '#{profile}'): unexpected key '#{key}'" unless ok.include?(key)
+          warnings << "#{file} (profile '#{profile}'): unexpected key '#{key}'" unless ok.include?(key)
         end
 
         check_title(file, value['title']) unless value['title'].nil?
@@ -205,7 +201,7 @@ module Scelint
       end
     end
 
-    def check_ce(file, data)
+    def check_ce(file, file_data)
       ok = [
         'title',
         'description',
@@ -217,9 +213,9 @@ module Scelint
         'notes',
       ]
 
-      data.each do |ce, value|
+      file_data.each do |ce, value|
         value.each_key do |key|
-          @warnings << "#{file} (CE '#{ce}'): unexpected key '#{key}'" unless ok.include?(key)
+          warnings << "#{file} (CE '#{ce}'): unexpected key '#{key}'" unless ok.include?(key)
         end
 
         check_title(file, value['title']) unless value['title'].nil?
@@ -232,12 +228,12 @@ module Scelint
       end
     end
 
-    def check_type(file, check, data)
-      @errors << "#{file} (check '#{check}'): unknown type '#{data}'" unless data == 'puppet-class-parameter'
+    def check_type(file, check, file_data)
+      errors << "#{file} (check '#{check}'): unknown type '#{file_data}'" unless file_data == 'puppet-class-parameter'
     end
 
     def check_parameter(file, check, parameter)
-      @errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'" unless parameter.is_a?(String) && !parameter.empty?
+      errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'" unless parameter.is_a?(String) && !parameter.empty?
     end
 
     def check_remediation(file, check, remediation_section)
@@ -252,7 +248,6 @@ module Scelint
 
       if remediation_section.is_a?(Hash)
         remediation_section.each do |section, value|
-          # require 'pry-byebug'; binding.pry if section == 'disabled'
           case section
           when 'scan-false-positive', 'disabled'
             value.each do |reason|
@@ -260,11 +255,11 @@ module Scelint
               if reason.is_a?(Hash)
                 # Check for unknown elements and warn the user rather than failing
                 (reason.keys - reason_ok).each do |unknown_element|
-                  @warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
+                  warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
                 end
-                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes." unless reason['reason'].is_a?(String)
+                errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes." unless reason['reason'].is_a?(String)
               else
-                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes."
+                errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes."
               end
             end
           when 'risk'
@@ -273,21 +268,21 @@ module Scelint
               if risk.is_a?(Hash)
                 # Check for unknown elements and warn the user rather than failing
                 (risk.keys - risk_ok).each do |unknown_element|
-                  @warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
+                  warnings << "#{file} (check '#{check}'): Unknown element #{unknown_element} in remediation section #{section}"
                 end
                 # Since reasons are optional here, we won't be checking for those
 
-                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons." unless risk['level'].is_a?(Integer)
+                errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons." unless risk['level'].is_a?(Integer)
               else
-                @errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons."
+                errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons."
               end
             end
           else
-            @warnings << "#{file} (check '#{check}'): #{section} is not a recognized section within the remediation section"
+            warnings << "#{file} (check '#{check}'): #{section} is not a recognized section within the remediation section"
           end
         end
       else
-        @errors << "#{file} (check '#{check}'): malformed remediation section, expecting a hash."
+        errors << "#{file} (check '#{check}'): malformed remediation section, expecting a hash."
       end
     end
 
@@ -296,40 +291,55 @@ module Scelint
       true
     end
 
-    def check_settings(file, check, data)
+    def check_settings(file, check, file_data)
       ok = ['parameter', 'value']
 
-      if data.nil?
-        @errors << "#{file} (check '#{check}'): missing settings"
+      if file_data.nil?
+        msg = "#{file} (check '#{check}'): missing settings"
+        if file == 'merged data'
+          errors << msg
+        else
+          warnings << msg
+        end
         return false
       end
 
-      if data.key?('parameter')
-        check_parameter(file, check, data['parameter'])
+      if file_data.key?('parameter')
+        check_parameter(file, check, file_data['parameter'])
       else
-        @errors << "#{file} (check '#{check}'): missing key 'parameter'"
+        msg = "#{file} (check '#{check}'): missing key 'parameter'"
+        if file == 'merged data'
+          errors << msg
+        else
+          warnings << msg
+        end
       end
 
-      if data.key?('value')
-        check_value(file, check, data['value'])
+      if file_data.key?('value')
+        check_value(file, check, file_data['value'])
       else
-        @errors << "#{file} (check '#{check}'): missing key 'value'"
+        msg = "#{file} (check '#{check}'): missing key 'value'"
+        if file == 'merged data'
+          errors << msg
+        else
+          warnings << msg
+        end
       end
 
-      data.each_key do |key|
-        @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
+      file_data.each_key do |key|
+        warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
       end
     end
 
-    def check_check_ces(file, data)
-      @warnings << "#{file}: bad ces '#{data}'" unless data.is_a?(Array)
+    def check_check_ces(file, file_data)
+      warnings << "#{file}: bad ces '#{file_data}'" unless file_data.is_a?(Array)
 
-      data.each do |key|
-        @warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String)
+      file_data.each do |key|
+        warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String)
       end
     end
 
-    def check_checks(file, data)
+    def check_checks(file, file_data)
       ok = [
         'type',
         'settings',
@@ -341,18 +351,18 @@ module Scelint
         'remediation',
       ]
 
-      data.each do |check, value|
+      file_data.each do |check, value|
         if value.nil?
-          @warnings << "#{file} (check '#{check}'): empty value"
+          warnings << "#{file} (check '#{check}'): empty value"
           next
         end
 
         if value.is_a?(Hash)
           value.each_key do |key|
-            @warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
+            warnings << "#{file} (check '#{check}'): unexpected key '#{key}'" unless ok.include?(key)
           end
         else
-          @errors << "#{file} (check '#{check}'): contains something other than a hash, this is most likely caused by a missing note or ce element under the check"
+          errors << "#{file} (check '#{check}'): contains something other than a hash, this is most likely caused by a missing note or ce element under the check"
         end
 
         check_type(file, check, value['type']) if value['type'] || file == 'merged data'
@@ -368,14 +378,14 @@ module Scelint
       end
     end
 
-    def lint(file, data)
-      check_version(file, data)
-      check_keys(file, data)
+    def lint(file, file_data)
+      check_version(file, file_data)
+      check_keys(file, file_data)
 
-      check_profiles(file, data['profiles']) if data['profiles']
-      check_ce(file, data['ce']) if data['ce']
-      check_checks(file, data['checks']) if data['checks']
-      check_controls(file, data['controls']) if data['controls']
+      check_profiles(file, file_data['profiles']) if file_data['profiles']
+      check_ce(file, file_data['ce']) if file_data['ce']
+      check_checks(file, file_data['checks']) if file_data['checks']
+      check_controls(file, file_data['controls']) if file_data['controls']
     end
   end
 end
