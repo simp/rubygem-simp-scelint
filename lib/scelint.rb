@@ -189,6 +189,8 @@ module Scelint
         'ces',
         'checks',
         'confine',
+        'id',
+        'benchmark_version',
       ]
 
       data.each do |profile, value|
