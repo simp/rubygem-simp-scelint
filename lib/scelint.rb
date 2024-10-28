@@ -138,7 +138,25 @@ module Scelint
     end
 
     def check_confine(file, file_data)
-      warnings << "#{file}: bad confine '#{file_data}'" unless file_data.is_a?(Hash)
+      not_ok = [
+        'type',
+        'settings',
+        'parameter',
+        'value',
+        'remediation',
+        'risk',
+        'level',
+        'reason',
+      ]
+
+      unless file_data.is_a?(Hash)
+        warnings << "#{file}: bad confine '#{file_data}'"
+        return
+      end
+
+      file_data.each_key do |key|
+        warnings << "#{file}: unexpected key '#{key}' in confine '#{file_data}'" if not_ok.include?(key)
+      end
     end
 
     def check_identifiers(file, file_data)
