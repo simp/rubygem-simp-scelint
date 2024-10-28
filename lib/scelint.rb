@@ -26,7 +26,7 @@ module Scelint
 
       merged_data = {}
 
-      paths.each do |path|
+      Array(paths).each do |path|
         if File.directory?(path)
           [
             'SIMP/compliance_profiles',

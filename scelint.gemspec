@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Linter SIMP Compliance Engine data}
   spec.homepage      = 'https://github.com/simp/rubygem-simp-scelint'
-  spec.required_ruby_version = Gem::Requirement.new('>= 2.5.0')
+  spec.required_ruby_version = Gem::Requirement.new('>= 2.7.0')
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = spec.homepage
@@ -24,5 +24,6 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_runtime_dependency 'deep_merge'
+  spec.add_runtime_dependency 'deep_merge', '~> 1.2'
+  spec.add_runtime_dependency 'thor', '~> 1.3'
 end
