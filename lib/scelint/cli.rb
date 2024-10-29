@@ -11,6 +11,7 @@ class Scelint::CLI < Thor
   class_option :debug, type: :boolean, aliases: '-d', default: false
 
   desc 'lint PATH', 'Lint all files in PATH'
+  option :strict, type: :boolean, aliases: '-s', default: false
   def lint(*paths)
     paths = ['.'] if paths.nil? || paths.empty?
     lint = Scelint::Lint.new(paths)
@@ -41,6 +42,7 @@ class Scelint::CLI < Thor
 
     if lint.warnings.count > 0
       message += "  #{lint.warnings.count} warnings."
+      exit_code = 1 if options[:strict]
     end
 
     logger.info message
