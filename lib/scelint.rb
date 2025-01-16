@@ -142,6 +142,8 @@ module Scelint
         lint(file, @data.get(file))
       end
 
+      merged_data_lint
+
       validate
     end
 
@@ -574,6 +576,19 @@ module Scelint
       check_controls(file, file_data['controls']) if file_data['controls']
     rescue => e
       errors << "#{file}: #{e.message} (not a hash?)"
+    end
+
+    private
+
+    def merge(collection)
+      collection.to_h.reduce({}) { |result, value| result.merge!(value[0] => value[1].to_h) }
+    end
+
+    def merged_data_lint
+      check_profiles('merged data', merge(data.profiles))
+      check_ce('merged data', merge(data.ces))
+      check_checks('merged data', merge(data.checks))
+      check_controls('merged data', merge(data.controls))
     end
   end
 end
