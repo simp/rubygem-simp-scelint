@@ -4,14 +4,13 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '~> 13.2'
-gem 'compliance_engine', '~> 0.1'
 
 group :tests do
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.65'
   gem 'rubocop-performance', '~> 1.21'
-  gem 'rubocop-rspec', '~> 3.0'
   gem 'rubocop-rake', '~> 0.6.0'
+  gem 'rubocop-rspec', '~> 3.0'
 end
 
 group :development do
