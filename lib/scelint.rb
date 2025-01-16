@@ -120,7 +120,7 @@ module Scelint
     'zones',
   ].freeze
 
-  # Checks SCE data in the specified directories
+  # Check SCE data in the specified directories
   # @example Look for data in the current directory (the default)
   #    lint = Scelint::Lint.new()
   # @example Look for data in `/path/to/module`
@@ -130,6 +130,10 @@ module Scelint
   class Lint
     attr_accessor :data, :errors, :warnings, :notes, :log
 
+    # Create a new Lint object
+    #
+    # @param paths [Array<String>] Paths to look for SCE data in. Defaults to ['.']
+    # @param logger [Logger] A logger to send messages to. Defaults to an instance of Logger with the log level set to INFO.
     def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO))
       @log = logger
       @errors = []
@@ -147,14 +151,25 @@ module Scelint
       validate
     end
 
+    # Return an array of all the files found in the loaded data
     def files
       data.files
     end
 
+    # Check that the value of the version key in the data is correct
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [String] The data to validate
+    #
+    # @note The version is currently hardcoded to '2.0.0'
     def check_version(file, file_data)
-      errors << "#{file}: version check failed" unless file_data['version'] == '2.0.0'
+      errors << "#{file}: version check failed" unless file_data == '2.0.0'
     end
 
+    # Check that all the top-level keys in the data are recognized
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_keys(file, file_data)
       ok = [
         'version',
@@ -169,14 +184,26 @@ module Scelint
       end
     end
 
+    # Check the title of the given data
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [String] The data to validate
     def check_title(file, file_data)
       warnings << "#{file}: bad title '#{file_data}'" unless file_data.is_a?(String)
     end
 
+    # Check the description of the given data
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [String] The data to validate
     def check_description(file, file_data)
       warnings << "#{file}: bad description '#{file_data}'" unless file_data.is_a?(String)
     end
 
+    # Check the controls in the given data
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_controls(file, file_data)
       if file_data.is_a?(Hash)
         file_data.each do |key, value|
@@ -187,6 +214,10 @@ module Scelint
       end
     end
 
+    # Check the CEs in a profile
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_profile_ces(file, file_data)
       if file_data.is_a?(Hash)
         file_data.each do |key, value|
@@ -197,6 +228,10 @@ module Scelint
       end
     end
 
+    # Check the checks in a profile
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_profile_checks(file, file_data)
       if file_data.is_a?(Hash)
         file_data.each do |key, value|
@@ -207,6 +242,10 @@ module Scelint
       end
     end
 
+    # Check the confine data structure for any unexpected keys and legacy facts
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_confine(file, file_data)
       not_ok = [
         'type',
@@ -233,6 +272,10 @@ module Scelint
       end
     end
 
+    # Check identifiers
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_identifiers(file, file_data)
       if file_data.is_a?(Hash)
         file_data.each do |key, value|
@@ -249,6 +292,10 @@ module Scelint
       end
     end
 
+    # Check oval-ids
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Array, Object] The data to validate
     def check_oval_ids(file, file_data)
       if file_data.is_a?(Array)
         file_data.each do |key|
@@ -259,6 +306,10 @@ module Scelint
       end
     end
 
+    # Check imported_data
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_imported_data(file, file_data)
       ok = ['checktext', 'fixtext']
 
@@ -269,6 +320,10 @@ module Scelint
       end
     end
 
+    # Check profiles
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_profiles(file, file_data)
       ok = [
         'title',
@@ -295,6 +350,10 @@ module Scelint
       end
     end
 
+    # Check a CE
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_ce(file, file_data)
       ok = [
         'title',
@@ -322,14 +381,29 @@ module Scelint
       end
     end
 
+    # Check type
+    #
+    # @param file [String] The path to the file being checked
+    # @param check [String] The name of the check
+    # @param file_data [String] The data to validate
     def check_type(file, check, file_data)
       errors << "#{file} (check '#{check}'): unknown type '#{file_data}'" unless file_data == 'puppet-class-parameter'
     end
 
+    # Check parameter
+    #
+    # @param file [String] The path to the file being checked
+    # @param check [String] The name of the check
+    # @param parameter [String] The parameter to validate
     def check_parameter(file, check, parameter)
       errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'" unless parameter.is_a?(String) && !parameter.empty?
     end
 
+    # Check remediation
+    #
+    # @param file [String] The path to the file being checked
+    # @param check [String] The name of the check
+    # @param remediation_section [Hash] The remediation section to validate
     def check_remediation(file, check, remediation_section)
       reason_ok = [
         'reason',
@@ -380,11 +454,22 @@ module Scelint
       end
     end
 
+    # Check a value
+    #
+    # @param _file [String] The path to the file being checked (currently unused)
+    # @param _check [String] The name of the check (currently unused)
+    # @param _value [Object] The value to be validated (currently unused)
+    # @return [Boolean] Always returns true (currently)
     def check_value(_file, _check, _value)
       # value could be anything
       true
     end
 
+    # Check settings
+    #
+    # @param file [String] The path to the file being checked
+    # @param check [String] The name of the check
+    # @param file_data [Hash] The data to validate
     def check_settings(file, check, file_data)
       ok = ['parameter', 'value']
 
@@ -425,6 +510,10 @@ module Scelint
       end
     end
 
+    # Check CEs in a check
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Array] The data to validate
     def check_check_ces(file, file_data)
       warnings << "#{file}: bad ces '#{file_data}'" unless file_data.is_a?(Array)
 
@@ -433,6 +522,10 @@ module Scelint
       end
     end
 
+    # Check checks
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def check_checks(file, file_data)
       ok = [
         'type',
@@ -472,6 +565,12 @@ module Scelint
       end
     end
 
+    # Normalize the given confinement hash by:
+    # * Expanding all possible combinations of Array values
+    # * Converting dotted fact names into a nested facts hash
+    #
+    # @param confine [Hash] The confinement hash to normalize
+    # @return [Array<Hash>] An array of normalized confinement hashes
     def normalize_confinement(confine)
       normalized = []
 
@@ -507,6 +606,9 @@ module Scelint
       end
     end
 
+    # Retrieve confines from the loaded data
+    #
+    # @return [Array] An array of confinement data
     def confines
       return @confines unless @confines.nil?
 
@@ -528,6 +630,11 @@ module Scelint
       @confines
     end
 
+    # Validate the Hiera data for each available profiles
+    #
+    # This method performs validation in two stages:
+    # 1. Unconfined: Checks if Hiera data exists for each profile.
+    # 2. Confined: Checks if Hiera data exists for each profile with specific facts.
     def validate
       if data.profiles.keys.empty?
         notes << 'No profiles found, unable to validate Hiera data'
@@ -566,8 +673,18 @@ module Scelint
       end
     end
 
+    # Lint the given file
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
     def lint(file, file_data)
-      check_version(file, file_data)
+      unless file_data.is_a?(Hash)
+        errors << "#{file}: Expected a Hash, got a #{file_data.class}"
+        return
+      end
+
+      check_version(file, file_data['version'])
+
       check_keys(file, file_data)
 
       check_profiles(file, file_data['profiles']) if file_data['profiles']
@@ -580,10 +697,15 @@ module Scelint
 
     private
 
+    # Merge a ComplianceEngine::Collection object into a Hash
+    #
+    # @param collection [ComplianceEngine::Collection] A collection object
+    # @return [Hash] The merged data
     def merge(collection)
       collection.to_h.reduce({}) { |result, value| result.merge!(value[0] => value[1].to_h) }
     end
 
+    # Perform lint checks on merged data
     def merged_data_lint
       check_profiles('merged data', merge(data.profiles))
       check_ce('merged data', merge(data.ces))
