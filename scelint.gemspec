@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['simp@simp-project.org']
   spec.license       = 'Apache-2.0'
 
-  spec.summary       = %q{Linter SIMP Compliance Engine data}
+  spec.summary       = 'Linter SIMP Compliance Engine data'
   spec.homepage      = 'https://github.com/simp/rubygem-simp-scelint'
   spec.required_ruby_version = Gem::Requirement.new('>= 2.7.0')
 
@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
-  spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
+  spec.files = Dir.chdir(File.expand_path('..', __FILE__)) do
     `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
   end
   spec.bindir        = 'exe'
@@ -26,6 +26,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'deep_merge', '~> 1.2'
   spec.add_dependency 'thor', '~> 1.3'
-  # FIXME: Add dependency on compliance_engine once it has been released
-  # spec.add_dependency 'compliance_engine', '~> 0.1.0'
+  spec.add_dependency 'compliance_engine', '~> 0.1.0'
 end
