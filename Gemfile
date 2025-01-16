@@ -4,7 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '~> 13.2'
-gem 'compliance_engine', git: 'https://github.com/simp/rubygem-simp-compliance_engine.git'
+gem 'compliance_engine', '~> 0.1'
 
 group :tests do
   gem 'rspec', '~> 3.13'
