@@ -5,7 +5,7 @@ plugins:
   - rubocop-rake
 AllCops:
   DisplayCopNames: true
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.2
   Include:
     - "**/*.rb"
     - Gemfile
