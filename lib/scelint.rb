@@ -460,7 +460,7 @@ module Scelint
     # @param _check [String] The name of the check (currently unused)
     # @param _value [Object] The value to be validated (currently unused)
     # @return [Boolean] Always returns true (currently)
-    def check_value(_file, _check, _value)
+    def check_value(_file, _check, _value) # rubocop:disable Naming/PredicateMethod
       # value could be anything
       true
     end

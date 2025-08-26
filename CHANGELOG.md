@@ -1,3 +1,6 @@
+### 0.3.1 / 2025-08-26
+* Updates for rubocop 1.80.0
+
 ### 0.3.0 / 2025-01-16
 * Use compliance_engine gem for data ingest
 * Check that all fact combinations return hiera data
