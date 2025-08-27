@@ -1,3 +1,7 @@
+### 0.4.0 / 2025-08-26
+* Updates for recent rubocop and plugins
+* Bump minimum required Ruby version to 3.2.0 (oldest version we're testing with)
+
 ### 0.3.0 / 2025-01-16
 * Use compliance_engine gem for data ingest
 * Check that all fact combinations return hiera data

@@ -36,7 +36,7 @@ class Scelint::CLI < Thor
     end
 
     message = "Checked #{count} files."
-    if lint.errors.count == 0
+    if lint.errors.empty?
       message += '  No errors.'
       exit_code = 0
     else
@@ -44,12 +44,12 @@ class Scelint::CLI < Thor
       exit_code = 1
     end
 
-    if lint.warnings.count > 0
+    unless lint.warnings.empty?
       message += "  #{lint.warnings.count} warnings."
       exit_code = 1 if options[:strict]
     end
 
-    message += " #{lint.notes.count} notes." if lint.notes.count > 0
+    message += " #{lint.notes.count} notes." unless lint.notes.empty?
 
     logger.info message
     exit exit_code
