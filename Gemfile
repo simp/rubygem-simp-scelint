@@ -14,7 +14,7 @@ group :tests do
 end
 
 group :development do
-  gem 'pry', '~> 0.15.2'
+  gem 'pry', '~> 0.16.0'
   gem 'pry-byebug', '~> 3.12.0'
   gem 'rdoc', '~> 7.1.0'
 end
