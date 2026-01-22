@@ -399,10 +399,14 @@ module Scelint
       # Regular expression to match valid Puppet class parameter names
       valid_parameter = %r{\A([a-z][a-z0-9_]*::)+[a-z][a-z0-9_]*\z}
       # From https://www.puppet.com/docs/puppet/7/lang_reserved.html
-      reserved_words = (%w[and application attr case component consumes default define elsif environment false function if import in inherits node or private produces regexp site true type undef unit unless]
-                        + %w[main settings init]
-                        + %w[any array binary boolean catalogentry class collection callable data default deferred enum float hash integer notundef numeric optional pattern resource regexp runtime scalar semver semVerRange sensitive string struct timespan timestamp tuple type undef variant]
-                        + %w[facts trusted server_facts title name]).freeze
+      reserved_words = ['and', 'application', 'attr', 'case', 'component', 'consumes', 'default', 'define', 'elsif',
+                        'environment', 'false', 'function', 'if', 'import', 'in', 'inherits', 'node',
+                        'or', 'private', 'produces', 'regexp', 'site', 'true', 'type', 'undef', 'unit', 'unless',
+                        'main', 'settings', 'init', 'any', 'array', 'binary', 'boolean', 'catalogentry', 'class',
+                        'collection', 'callable', 'data', 'default', 'deferred', 'enum', 'float', 'hash', 'integer',
+                        'notundef', 'numeric', 'optional', 'pattern', 'resource', 'regexp', 'runtime', 'scalar',
+                        'semver', 'semVerRange', 'sensitive', 'string', 'struct', 'timespan', 'timestamp', 'tuple',
+                        'type', 'undef', 'variant', 'facts', 'trusted', 'server_facts', 'title', 'name'].freeze
 
       unless parameter.is_a?(String) && !parameter.empty?
         errors << "#{file} (check '#{check}'): invalid parameter '#{parameter}'"
