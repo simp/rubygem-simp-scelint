@@ -1,3 +1,7 @@
+### 0.4.1 / 2026-01-26
+* Support compliance_engine 0.2.x
+* Test with Ruby 4.0
+
 ### 0.4.0 / 2025-08-26
 * Updates for recent rubocop and plugins
 * Bump minimum required Ruby version to 3.2.0 (oldest version we're testing with)
