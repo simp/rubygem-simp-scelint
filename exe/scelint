@@ -3,4 +3,4 @@
 
 require 'scelint/cli'
 
-Scelint::CLI.start(['lint'] + ARGV)
+Scelint::CLI.start
