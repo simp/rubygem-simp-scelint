@@ -6,6 +6,20 @@ require 'logger'
 
 # SCELint CLI
 class Scelint::CLI < Thor
+  def self.exit_on_failure?
+    true
+  end
+
+  # When the first argument is not a known subcommand or an option flag,
+  # treat all arguments as paths for the default `lint` command.
+  def self.start(given_args = ARGV, config = {})
+    args = given_args
+    if args.first && !args.first.start_with?('-') && !all_commands.key?(args.first)
+      args = ['lint'] + args
+    end
+    super(args, config)
+  end
+
   class_option :quiet, type: :boolean, aliases: '-q', default: false
   class_option :verbose, type: :boolean, aliases: '-v', default: false
   class_option :debug, type: :boolean, aliases: '-d', default: false
