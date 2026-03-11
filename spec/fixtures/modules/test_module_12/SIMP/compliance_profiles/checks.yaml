@@ -1,0 +1,10 @@
+---
+version: 2.0.0
+checks:
+  12_settings_check:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_12::settings
+      value: true
+    ces:
+    - 12_ce1

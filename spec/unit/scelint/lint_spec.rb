@@ -6,7 +6,7 @@ RSpec.describe Scelint::Lint do
   # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
   let(:lint_files) { { '04' => 37, '11' => 2 } }
-  let(:lint_errors) { {} }
+  let(:lint_errors) { { '12' => 2 } }
   let(:lint_warnings) { { '04' => 17 } }
   let(:lint_notes) { { '11' => 1 } }
 

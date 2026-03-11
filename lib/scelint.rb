@@ -134,8 +134,9 @@ module Scelint
     #
     # @param paths [Array<String>] Paths to look for SCE data in. Defaults to ['.']
     # @param logger [Logger] A logger to send messages to. Defaults to an instance of Logger with the log level set to INFO.
-    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO))
+    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO), allow_reserved_words: false)
       @log = logger
+      @allow_reserved_words = allow_reserved_words
       @errors = []
       @warnings = []
       @notes = []
@@ -417,6 +418,8 @@ module Scelint
         errors << "#{file} (check '#{check}'): invalid parameter name '#{parameter}'"
         return
       end
+
+      return if @allow_reserved_words
 
       parameter.split('::').each do |part|
         if reserved_words.include?(part)
