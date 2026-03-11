@@ -1,3 +1,7 @@
+### 0.5.0 / 2026-03-11
+* Validate parameter names
+* Fix command-line argument processing
+
 ### 0.4.1 / 2026-01-26
 * Support compliance_engine 0.2.x
 * Test with Ruby 4.0
