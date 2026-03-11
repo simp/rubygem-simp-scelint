@@ -10,10 +10,21 @@ class Scelint::CLI < Thor
     true
   end
 
+  DEFAULTS_FILE = '.scelint'
+
+  # Load default arguments from .scelint in the current directory.
+  # Each non-blank, non-comment line may contain one or more arguments.
+  def self.load_defaults
+    return [] unless File.exist?(DEFAULTS_FILE)
+    File.readlines(DEFAULTS_FILE, chomp: true)
+        .reject { |line| line.strip.empty? || line.strip.start_with?('#') }
+        .flat_map(&:split)
+  end
+
   # When the first argument is not a known subcommand or an option flag,
   # treat all arguments as paths for the default `lint` command.
   def self.start(given_args = ARGV, config = {})
-    args = given_args
+    args = load_defaults + given_args
     if args.first && !args.first.start_with?('-') && !all_commands.key?(args.first)
       args = ['lint'] + args
     end
@@ -26,9 +37,10 @@ class Scelint::CLI < Thor
 
   desc 'lint PATH', 'Lint all files in PATH'
   option :strict, type: :boolean, aliases: '-s', default: false
+  option :allow_reserved_words, type: :boolean, default: false
   def lint(*paths)
     paths = ['.'] if paths.nil? || paths.empty?
-    lint = Scelint::Lint.new(paths, logger: logger)
+    lint = Scelint::Lint.new(paths, logger: logger, allow_reserved_words: options[:allow_reserved_words])
 
     count = lint.files.count
 

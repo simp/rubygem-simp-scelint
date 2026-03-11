@@ -1,3 +1,7 @@
+### 0.6.0 / 2026-03-11
+* Add `.scelint` defaults file support (rspec-style CLI argument defaults)
+* Add `--allow-reserved-words` option to skip reserved word checks on parameter names
+
 ### 0.5.0 / 2026-03-11
 * Validate parameter names
 * Fix command-line argument processing
