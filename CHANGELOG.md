@@ -1,3 +1,6 @@
+### 0.6.1 / 2026-08-20
+* Support compliance_engine 1.x
+
 ### 0.6.0 / 2026-03-11
 * Add `.scelint` defaults file support (rspec-style CLI argument defaults)
 * Add `--allow-reserved-words` option to skip reserved word checks on parameter names
