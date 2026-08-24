@@ -1,0 +1,33 @@
+---
+version: 2.0.0
+ce:
+  # Given a different rule id in ces_b.yaml.
+  16_ce_conflicting:
+    controls:
+      16_control1: true
+    oval-ids:
+    - SV-160001r100000_rule
+  # Given the same rule id in ces_b.yaml, written the other way round.
+  16_ce_prefixed:
+    controls:
+      16_control1: true
+    oval-ids:
+    - SV-160002r100000_rule
+  # Given an id in ces_b.yaml that ends with this one, but not after a '_'.
+  16_ce_suffix_only:
+    controls:
+      16_control1: true
+    oval-ids:
+    - V-160003r100000_rule
+  # Given the same rule id in ces_b.yaml, with ':' in the namespace.
+  16_ce_colon_namespace:
+    controls:
+      16_control1: true
+    oval-ids:
+    - xccdf_org.ssgproject.content_rule_160004
+  # Given a different rule in ces_b.yaml, one whose name this id ends with.
+  16_ce_shorter_name:
+    controls:
+      16_control1: true
+    oval-ids:
+    - package_aide_installed

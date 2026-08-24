@@ -149,6 +149,8 @@ module Scelint
 
       merged_data_lint
 
+      check_ce_oval_ids
+
       validate
     end
 
@@ -801,7 +803,53 @@ module Scelint
       errors << "#{file}: #{e.message} (not a hash?)"
     end
 
+    # Report CEs that resolve to more than one rule
+    #
+    # A CE identifies one rule.  When two files give the same CE different
+    # oval-ids, the merged CE carries every one of them, and scan results
+    # can no longer be correlated back to a single rule with any confidence.
+    #
+    # In practice this is what a superseded benchmark file looks like from the
+    # inside: the old and new revisions both define the same CE keys, and the
+    # rule ids are where they diverge.
+    def check_ce_oval_ids
+      data.ces.each do |ce, component|
+        by_file = component.component[:fragments].each_with_object({}) do |(file, fragment), result|
+          next unless fragment.is_a?(Hash)
+
+          ids = Array(fragment['oval-ids']).select { |id| id.is_a?(String) && !id.empty? }
+          result[file] = ids unless ids.empty?
+        end
+
+        by_file.to_a.combination(2) do |(file_a, ids_a), (file_b, ids_b)|
+          next if same_rules?(ids_a, ids_b)
+
+          errors << "CE '#{ce}': conflicting oval-ids (#{ids_a.inspect} in #{file_a}, #{ids_b.inspect} in #{file_b})"
+        end
+      end
+    end
+
     private
+
+    # Return true if two sets of oval-ids name the same rules
+    #
+    # The same rule is routinely written two ways in one data set: a manual
+    # benchmark uses the bare rule id and its SCAP counterpart prefixes it, as in
+    # 'SV-230221r1017040_rule' and
+    # 'xccdf_mil.disa.stig_rule_SV-230221r1017040_rule'.  Those are not a
+    # disagreement, so the 'xccdf_<namespace>_rule_' prefix is ignored, and
+    # the remaining rule names are compared as sets.  The namespace may be
+    # written with '.' or ':', as in 'xccdf_org.ssgproject.content_rule_foo'
+    # and 'xccdf_org:ssgproject:content_rule_foo'.
+    #
+    # @param ids_a [Array<String>] A set of oval-ids
+    # @param ids_b [Array<String>] A set of oval-ids
+    # @return [Boolean]
+    def same_rules?(ids_a, ids_b)
+      rule_names = ->(ids) { ids.map { |id| id.sub(%r{\Axccdf_[^_]+_rule_}, '') }.uniq.sort }
+
+      rule_names.call(ids_a) == rule_names.call(ids_b)
+    end
 
     # Merge a ComplianceEngine::Collection object into a Hash
     #

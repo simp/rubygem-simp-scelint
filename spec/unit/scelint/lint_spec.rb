@@ -5,8 +5,8 @@ require 'spec_helper'
 RSpec.describe Scelint::Lint do
   # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
-  let(:lint_files) { { '04' => 37, '11' => 2 } }
-  let(:lint_errors) { { '12' => 2, '13' => 4 } }
+  let(:lint_files) { { '04' => 37, '11' => 2, '16' => 4 } }
+  let(:lint_errors) { { '12' => 2, '13' => 4, '16' => 3 } }
   let(:lint_warnings) { { '04' => 17, '13' => 2 } }
   let(:lint_notes) { { '11' => 1 } }
 
@@ -57,6 +57,32 @@ RSpec.describe Scelint::Lint do
 
       expect { lint.send(:merged_data_lint) }.not_to raise_error
       expect(lint.errors).to include('merged data: boom')
+    end
+  end
+
+  context 'with CEs that resolve to more than one rule' do
+    subject(:lint) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_16')])
+    end
+
+    it 'reports a CE given different oval-ids by different files' do
+      expect(lint.errors).to include(a_string_matching(%r{'16_ce_conflicting': conflicting oval-ids}))
+    end
+
+    it 'ignores ids that differ only by a prefix' do
+      expect(lint.errors).not_to include(a_string_matching(%r{16_ce_prefixed}))
+    end
+
+    it "reports ids where one only ends with the other, without a '_' before it" do
+      expect(lint.errors).to include(a_string_matching(%r{'16_ce_suffix_only': conflicting oval-ids}))
+    end
+
+    it "ignores ids whose XCCDF namespace is written with ':' instead of '.'" do
+      expect(lint.errors).not_to include(a_string_matching(%r{16_ce_colon_namespace}))
+    end
+
+    it 'reports a rule whose name only ends with the other rule name' do
+      expect(lint.errors).to include(a_string_matching(%r{'16_ce_shorter_name': conflicting oval-ids}))
     end
   end
 

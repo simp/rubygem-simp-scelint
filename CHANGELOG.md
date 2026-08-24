@@ -1,3 +1,8 @@
+### 0.7.0 / 2026-11-02
+* **BREAKING:** Report an error when files give a CE `oval-ids` for different
+  rules, as happens when two revisions of a benchmark ship together. Remove
+  the superseded files.
+
 ### 0.6.2 / 2026-11-02
 * Report the file and check when data cannot be merged instead of crashing
 * Report a `profiles`, `ce` or `checks` section that is not a hash, and a check's
