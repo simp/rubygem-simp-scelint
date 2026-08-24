@@ -8,7 +8,7 @@ RSpec.describe Scelint::Lint do
   let(:lint_files) { { '04' => 37, '11' => 2 } }
   let(:lint_errors) { { '12' => 2 } }
   let(:lint_warnings) { { '04' => 17 } }
-  let(:lint_notes) { { '11' => 1 } }
+  let(:lint_notes) { { '11' => 1, '14' => 2 } }
 
   test_modules = Dir.glob(File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_*'))
   test_modules.each do |test_module|
