@@ -5,8 +5,8 @@ require 'spec_helper'
 RSpec.describe Scelint::Lint do
   # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
-  let(:lint_files) { { '04' => 37, '11' => 2 } }
-  let(:lint_errors) { { '12' => 2 } }
+  let(:lint_files) { { '04' => 37, '11' => 2, '16' => 4 } }
+  let(:lint_errors) { { '12' => 2, '16' => 1 } }
   let(:lint_warnings) { { '04' => 17 } }
   let(:lint_notes) { { '11' => 1 } }
 
@@ -44,6 +44,20 @@ RSpec.describe Scelint::Lint do
         pp lint.notes if lint.notes.count != (lint_notes[index] || 0)
         expect(lint.notes.count).to eq(lint_notes[index] || 0)
       end
+    end
+  end
+
+  context 'with CEs that resolve to more than one rule' do
+    subject(:lint) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_16')])
+    end
+
+    it 'reports a CE given different oval-ids by different files' do
+      expect(lint.errors).to include(a_string_matching(%r{'16_ce_conflicting': conflicting oval-ids}))
+    end
+
+    it 'ignores ids that differ only by a prefix' do
+      expect(lint.errors).not_to include(a_string_matching(%r{16_ce_prefixed}))
     end
   end
 
