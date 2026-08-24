@@ -134,9 +134,10 @@ module Scelint
     #
     # @param paths [Array<String>] Paths to look for SCE data in. Defaults to ['.']
     # @param logger [Logger] A logger to send messages to. Defaults to an instance of Logger with the log level set to INFO.
-    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO), allow_reserved_words: false)
+    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO), allow_reserved_words: false, resource_identity: {})
       @log = logger
       @allow_reserved_words = allow_reserved_words
+      @resource_identity = resource_identity
       @errors = []
       @warnings = []
       @notes = []
@@ -151,6 +152,7 @@ module Scelint
 
       check_duplicate_check_definitions
       check_conflicting_values
+      check_duplicate_resources
 
       validate
     end
@@ -794,7 +796,93 @@ module Scelint
       end
     end
 
+    # Report checks that declare the same underlying resource twice
+    #
+    # Some Puppet class parameters are hashes whose keys are only titles: what
+    # actually identifies the resource lives in the value.  simp_windows'
+    # registry_values is the usual example, where the registry path is 'key' plus
+    # 'value' and the hash key is a human-readable label.  Two checks can then
+    # give the same registry path two different labels, and the module turns that
+    # into two resources with the same derived title, which fails to compile.
+    #
+    # Nothing in the data says which sub-keys identify a resource, so this only
+    # runs for parameters named in :resource_identity, e.g.
+    #
+    #   { 'simp_windows::registry_values' => ['key', 'value'] }
+    #
+    # A pair that shares a profile is an error, because it is broken now.  A pair
+    # that does not is a warning: it is only latent because the mapping happens to
+    # keep them apart, and the next mapping change breaks it.
+    def check_duplicate_resources
+      return if @resource_identity.nil? || @resource_identity.empty?
+
+      profiles = data.profiles.to_h.transform_values { |profile| data.check_mapping(profile).keys }
+
+      resource_index.each_value do |declarations|
+        declarations.combination(2) do |(check_a, key_a, value_a), (check_b, key_b, value_b)|
+          next if check_a == check_b
+          # The same label and the same content merges cleanly; that is one
+          # resource described twice, not two resources.
+          next if key_a == key_b && value_a == value_b
+          next if disjoint_confinement?(check_a, check_b)
+
+          shared = profiles.select { |_, checks| checks.include?(check_a) && checks.include?(check_b) }.keys
+          report_duplicate_resource(check_a, key_a, check_b, key_b, shared)
+        end
+      end
+    end
+
     private
+
+    # Group the entries of every identity-bearing parameter by the resource they declare
+    #
+    # @return [Hash{Array => Array}] Resource identity to [check, hash key, value] triples
+    def resource_index
+      index = {}
+
+      data.checks.each do |check, component|
+        next unless component.type == 'puppet-class-parameter'
+
+        settings = component.settings
+        next unless settings.is_a?(Hash) && settings['value'].is_a?(Hash)
+
+        identity_keys = @resource_identity[settings['parameter']]
+        next if identity_keys.nil?
+
+        settings['value'].each do |key, value|
+          next unless value.is_a?(Hash)
+
+          # Resource identities are compared case-insensitively.  Registry paths in
+          # particular are written with inconsistent casing and are not case
+          # sensitive, so 'HKLM\SOFTWARE' and 'HKLM\Software' are one resource.
+          identity = identity_keys.map { |field| value[field].to_s.downcase }
+          next if identity.any?(&:empty?)
+
+          (index[[settings['parameter'], identity]] ||= []) << [check, key, value]
+        end
+      end
+
+      index
+    end
+
+    # Record a duplicate resource declaration at the appropriate severity
+    #
+    # @param check_a [String] The name of a check
+    # @param key_a [String] The hash key it declares the resource under
+    # @param check_b [String] The name of a check
+    # @param key_b [String] The hash key it declares the resource under
+    # @param shared [Array<String>] Profiles containing both checks
+    # @return [void]
+    def report_duplicate_resource(check_a, key_a, check_b, key_b, shared)
+      declarations = "'#{key_a}' in check '#{check_a}' and '#{key_b}' in check '#{check_b}'"
+
+      if shared.empty?
+        warnings << "Duplicate resource declared by #{declarations}. " \
+                    'No profile contains both checks today, so this does not fail yet.'
+      else
+        errors << "Profile '#{shared.first}': duplicate resource declared by #{declarations}"
+      end
+    end
 
     # Collect every leaf of every mapped check's settings, keyed by location
     #

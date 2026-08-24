@@ -69,6 +69,31 @@ RSpec.describe Scelint::Lint do
     end
   end
 
+  context 'with checks that declare the same resource twice' do
+    subject(:lint) do
+      described_class.new(
+        [File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_17')],
+        resource_identity: { 'test_module_17::resources' => ['path'] },
+      )
+    end
+
+    let(:unconfigured) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_17')])
+    end
+
+    it 'reports two checks in one profile declaring the same resource' do
+      expect(lint.errors).to include(a_string_matching(%r{duplicate resource declared by 'A friendly label'}))
+    end
+
+    it 'warns about a duplicate that no profile currently pairs up' do
+      expect(lint.warnings).to include(a_string_matching(%r{Latent label one.*does not fail yet}))
+    end
+
+    it 'does nothing without a resource identity for the parameter' do
+      expect(unconfigured.errors + unconfigured.warnings).to be_empty
+    end
+  end
+
   context 'validating all test modules at once' do
     subject(:lint) { described_class.new(test_modules) }
 

@@ -1,3 +1,6 @@
+### 0.8.0 / 2026-08-20
+* Report checks that declare the same underlying resource twice
+
 ### 0.7.0 / 2026-08-20
 * Report checks whose definition is split across files and disagrees
 * Report checks that disagree about the value of the same Puppet class parameter
