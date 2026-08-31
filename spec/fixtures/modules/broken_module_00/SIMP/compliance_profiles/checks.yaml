@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+checks:
+  broken_00_check:
+    - broken_00_ce
