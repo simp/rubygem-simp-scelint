@@ -1,0 +1,10 @@
+---
+version: 2.0.0
+ce:
+  14_ce1:
+    controls:
+      14_control1: true
+  # Referenced by 14_orphan_via_ce, but claimed by no profile.
+  14_ce_unmapped:
+    controls:
+      14_control_unmapped: true
