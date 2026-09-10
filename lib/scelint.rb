@@ -314,6 +314,11 @@ module Scelint
     def check_imported_data(file, file_data)
       ok = ['checktext', 'fixtext']
 
+      unless file_data.is_a?(Hash)
+        warnings << "#{file}: bad imported_data '#{file_data}'"
+        return
+      end
+
       file_data.each do |key, value|
         warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
 
@@ -338,6 +343,11 @@ module Scelint
       ]
 
       file_data.each do |profile, value|
+        unless value.is_a?(Hash)
+          errors << "#{file} (profile '#{profile}'): contains something other than a hash, this is most likely caused by bad indentation in the YAML source"
+          next
+        end
+
         value.each_key do |key|
           warnings << "#{file} (profile '#{profile}'): unexpected key '#{key}'" unless ok.include?(key)
         end
@@ -368,6 +378,11 @@ module Scelint
       ]
 
       file_data.each do |ce, value|
+        unless value.is_a?(Hash)
+          errors << "#{file} (CE '#{ce}'): contains something other than a hash, this is most likely caused by bad indentation in the YAML source"
+          next
+        end
+
         value.each_key do |key|
           warnings << "#{file} (CE '#{ce}'): unexpected key '#{key}'" unless ok.include?(key)
         end
@@ -447,6 +462,11 @@ module Scelint
         remediation_section.each do |section, value|
           case section
           when 'scan-false-positive', 'disabled'
+            unless value.is_a?(Array)
+              errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of reason hashes."
+              next
+            end
+
             value.each do |reason|
               # If the element in the remediation section isn't a hash, it is incorrect.
               if reason.is_a?(Hash)
@@ -460,6 +480,11 @@ module Scelint
               end
             end
           when 'risk'
+            unless value.is_a?(Array)
+              errors << "#{file} (check '#{check}'): malformed remediation section #{section}, must be an array of hashes containing levels and reasons."
+              next
+            end
+
             value.each do |risk|
               # If the element in the remediation section isn't a hash, it is incorrect.
               if risk.is_a?(Hash)
@@ -512,6 +537,11 @@ module Scelint
         return false
       end
 
+      unless file_data.is_a?(Hash)
+        errors << "#{file} (check '#{check}'): bad settings '#{file_data}', expecting a hash"
+        return false
+      end
+
       if file_data.key?('parameter')
         check_parameter(file, check, file_data['parameter'])
       else
@@ -544,7 +574,10 @@ module Scelint
     # @param file [String] The path to the file being checked
     # @param file_data [Array] The data to validate
     def check_check_ces(file, file_data)
-      warnings << "#{file}: bad ces '#{file_data}'" unless file_data.is_a?(Array)
+      unless file_data.is_a?(Array)
+        warnings << "#{file}: bad ces '#{file_data}'"
+        return
+      end
 
       file_data.each do |key|
         warnings << "#{file}: bad ce '#{key}'" unless key.is_a?(String)
@@ -735,11 +768,17 @@ module Scelint
     end
 
     # Perform lint checks on merged data
+    #
+    # @note Unlike #lint, this has no file to attribute a failure to, so any
+    #   unexpected exception is reported against 'merged data' rather than
+    #   escaping to the caller.
     def merged_data_lint
       check_profiles('merged data', merge(data.profiles))
       check_ce('merged data', merge(data.ces))
       check_checks('merged data', merge(data.checks))
       check_controls('merged data', merge(data.controls))
+    rescue => e
+      errors << "merged data: #{e.message}"
     end
   end
 end
