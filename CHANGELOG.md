@@ -1,3 +1,6 @@
+### 0.7.0 / 2026-08-20
+* Report CEs that resolve to more than one rule
+
 ### 0.6.1 / 2026-08-20
 * Support compliance_engine 1.x
 
