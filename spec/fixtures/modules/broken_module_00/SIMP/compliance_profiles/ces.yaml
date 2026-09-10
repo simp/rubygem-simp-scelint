@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+ce:
+  broken_00_ce:
+    title: Broken module CE
+    description: A CE referenced by a check that is missing its ces key

@@ -338,6 +338,16 @@ module Scelint
       ]
 
       file_data.each do |profile, value|
+        if value.nil?
+          warnings << "#{file} (profile '#{profile}'): empty value"
+          next
+        end
+
+        unless value.is_a?(Hash)
+          errors << "#{file} (profile '#{profile}'): contains something other than a hash"
+          next
+        end
+
         value.each_key do |key|
           warnings << "#{file} (profile '#{profile}'): unexpected key '#{key}'" unless ok.include?(key)
         end
@@ -368,6 +378,16 @@ module Scelint
       ]
 
       file_data.each do |ce, value|
+        if value.nil?
+          warnings << "#{file} (CE '#{ce}'): empty value"
+          next
+        end
+
+        unless value.is_a?(Hash)
+          errors << "#{file} (CE '#{ce}'): contains something other than a hash"
+          next
+        end
+
         value.each_key do |key|
           warnings << "#{file} (CE '#{ce}'): unexpected key '#{key}'" unless ok.include?(key)
         end
@@ -579,6 +599,7 @@ module Scelint
           end
         else
           errors << "#{file} (check '#{check}'): contains something other than a hash, this is most likely caused by a missing note or ce element under the check"
+          next
         end
 
         check_type(file, check, value['type']) if value['type'] || file == 'merged data'
@@ -672,7 +693,12 @@ module Scelint
 
       # Unconfined, verify that hiera data exists
       data.profiles.each_key do |profile|
-        hiera = data.hiera([profile])
+        begin
+          hiera = data.hiera([profile])
+        rescue => e
+          errors << "Profile '#{profile}': unable to render Hiera data (#{e.message})"
+          next
+        end
         if hiera.nil?
           errors << "Profile '#{profile}': Invalid Hiera data (returned nil)"
           next
@@ -688,7 +714,12 @@ module Scelint
       confines.each do |confine|
         data.facts = confine
         data.profiles.select { |_, value| value.ces&.count&.positive? || value.controls&.count&.positive? }.each_key do |profile|
-          hiera = data.hiera([profile])
+          begin
+            hiera = data.hiera([profile])
+          rescue => e
+            errors << "Profile '#{profile}': unable to render Hiera data (#{e.message}) with facts #{confine}"
+            next
+          end
           if hiera.nil?
             errors << "Profile '#{profile}': Invalid Hiera data (returned nil) with facts #{confine}"
             next
@@ -728,18 +759,27 @@ module Scelint
 
     # Merge a ComplianceEngine::Collection object into a Hash
     #
+    # Components that cannot be merged (usually because a fragment is
+    # malformed) are reported as errors and left out of the result rather
+    # than aborting the entire lint run.
+    #
     # @param collection [ComplianceEngine::Collection] A collection object
+    # @param type [String] The type of component in the collection, used in error messages
     # @return [Hash] The merged data
-    def merge(collection)
-      collection.to_h.reduce({}) { |result, value| result.merge!(value[0] => value[1].to_h) }
+    def merge(collection, type)
+      collection.to_h.each_with_object({}) do |(key, value), result|
+        result[key] = value.to_h
+      rescue => e
+        errors << "merged data: unable to merge #{type} '#{key}': #{e.message}"
+      end
     end
 
     # Perform lint checks on merged data
     def merged_data_lint
-      check_profiles('merged data', merge(data.profiles))
-      check_ce('merged data', merge(data.ces))
-      check_checks('merged data', merge(data.checks))
-      check_controls('merged data', merge(data.controls))
+      check_profiles('merged data', merge(data.profiles, 'profile'))
+      check_ce('merged data', merge(data.ces, 'CE'))
+      check_checks('merged data', merge(data.checks, 'check'))
+      check_controls('merged data', merge(data.controls, 'control'))
     end
   end
 end

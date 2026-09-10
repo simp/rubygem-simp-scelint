@@ -104,4 +104,40 @@ RSpec.describe Scelint::Lint do
       expect(lint.notes.count).to eq(total_notes)
     end
   end
+
+  # broken_module_00 contains a check whose value is an array instead of a
+  # hash (a `ces` key deleted by mistake, leaving the list directly under
+  # the check id).  compliance_engine raises when merging it, which used to
+  # abort the entire lint run before any errors were reported.  It is kept
+  # out of the test_module_* glob above because merging it poisons Hiera
+  # validation for every other module's profiles when linted together.
+  context 'validating a module with an unmergeable check' do
+    subject(:lint) { described_class.new([broken_module]) }
+
+    let(:broken_module) do
+      File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'broken_module_00')
+    end
+
+    it 'initializes' do
+      expect(lint).to be_instance_of(described_class)
+    end
+
+    it 'reports the file and check that are malformed' do
+      expect(lint.errors).to include(match(%r{checks\.yaml \(check 'broken_00_check'\): contains something other than a hash}))
+    end
+
+    it 'reports the check that cannot be merged' do
+      expect(lint.errors).to include(match(%r{\Amerged data: unable to merge check 'broken_00_check'}))
+    end
+
+    it 'reports the profile whose Hiera data cannot be rendered' do
+      expect(lint.errors).to include(match(%r{\AProfile 'broken_00_profile': unable to render Hiera data}))
+    end
+
+    it 'reports nothing else' do
+      expect(lint.errors.count).to eq(3)
+      expect(lint.warnings).to be_empty
+      expect(lint.notes).to be_empty
+    end
+  end
 end
