@@ -3,6 +3,7 @@
 require 'yaml'
 require 'json'
 require 'deep_merge'
+require 'json_schemer'
 require 'logger'
 require 'compliance_engine'
 
@@ -155,6 +156,32 @@ module Scelint
     # Return an array of all the files found in the loaded data
     def files
       data.files
+    end
+
+    # Validate a file against the SCE JSON Schema
+    #
+    # The schema ships with compliance_engine and is the closest thing there is to
+    # a specification of the file format, so it is worth checking against directly
+    # rather than only through the hand-written checks in this class.
+    #
+    # The two overlap but neither contains the other.  The schema knows the shape
+    # of a file, including key naming and structure nothing here looks at.  It
+    # cannot know anything about merged data, because it only ever sees one file,
+    # which is what #merged_data_lint is for.
+    #
+    # @param file [String] The path to the file being checked
+    # @param file_data [Hash] The data to validate
+    def check_schema(file, file_data)
+      schema.validate(file_data).each do |violation|
+        warnings << "#{file}: #{violation['error']}"
+      end
+    end
+
+    # The compiled SCE JSON Schema
+    #
+    # @return [JSONSchemer::Schema]
+    def schema
+      @schema ||= JSONSchemer.schema(ComplianceEngine.schema)
     end
 
     # Check that the value of the version key in the data is correct
@@ -711,6 +738,8 @@ module Scelint
         errors << "#{file}: Expected a Hash, got a #{file_data.class}"
         return
       end
+
+      check_schema(file, file_data)
 
       check_version(file, file_data['version'])
 
