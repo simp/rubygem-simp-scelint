@@ -1,3 +1,6 @@
+### 0.6.2 / 2026-08-20
+* Report malformed data instead of raising NoMethodError (#90)
+
 ### 0.6.1 / 2026-08-20
 * Support compliance_engine 1.x
 
