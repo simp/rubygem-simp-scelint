@@ -1,0 +1,46 @@
+---
+version: 2.0.0
+checks:
+  # Declares the same resource as 17_duplicate_b under a different label, and
+  # both are in 17_profile_test.
+  17_duplicate_a:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_17::resources
+      value:
+        A friendly label:
+          path: /some/resource
+          data: '1'
+    ces:
+    - 17_ce1
+  17_duplicate_b:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_17::resources
+      value:
+        A different label:
+          path: /SOME/Resource
+          data: '1'
+    ces:
+    - 17_ce1
+  # Declares the same resource as 17_latent_b, but no profile contains both.
+  17_latent_a:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_17::resources
+      value:
+        Latent label one:
+          path: /latent/resource
+          data: '1'
+    ces:
+    - 17_ce1
+  17_latent_b:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_17::resources
+      value:
+        Latent label two:
+          path: /latent/resource
+          data: '2'
+    ces:
+    - 17_ce_unmapped

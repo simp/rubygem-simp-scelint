@@ -38,9 +38,20 @@ class Scelint::CLI < Thor
   desc 'lint PATH', 'Lint all files in PATH'
   option :strict, type: :boolean, aliases: '-s', default: false
   option :allow_reserved_words, type: :boolean, default: false
+  # A String rather than an Array: Thor's array options consume every following
+  # argument, which would swallow the paths.
+  option :resource_identity,
+         type: :string,
+         banner: 'PARAMETER=FIELD[,FIELD][;...]',
+         desc: 'Sub-keys that identify a resource within a hash parameter, e.g. simp_windows::registry_values=key,value'
   def lint(*paths)
     paths = ['.'] if paths.nil? || paths.empty?
-    lint = Scelint::Lint.new(paths, logger: logger, allow_reserved_words: options[:allow_reserved_words])
+    lint = Scelint::Lint.new(
+      paths,
+      logger: logger,
+      allow_reserved_words: options[:allow_reserved_words],
+      resource_identity: resource_identity,
+    )
 
     count = lint.files.count
 
@@ -85,6 +96,22 @@ class Scelint::CLI < Thor
   default_task :lint
 
   private
+
+  # Parse --resource-identity arguments into a parameter to fields mapping
+  #
+  # @return [Hash{String => Array<String>}]
+  def resource_identity
+    options[:resource_identity].to_s.split(';').each_with_object({}) do |argument, result|
+      parameter, fields = argument.split('=', 2)
+
+      if fields.nil? || fields.empty?
+        logger.warn "Ignoring malformed --resource-identity '#{argument}', expected PARAMETER=FIELD[,FIELD]"
+        next
+      end
+
+      result[parameter] = fields.split(',')
+    end
+  end
 
   def logger
     return @logger if @logger
