@@ -1,3 +1,6 @@
+### 0.7.0 / 2026-08-20
+* Report checks that are not reachable from any profile
+
 ### 0.6.1 / 2026-08-20
 * Support compliance_engine 1.x
 
