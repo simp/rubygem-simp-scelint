@@ -1,0 +1,9 @@
+---
+version: 2.0.0
+ce:
+  16_ce_conflicting:
+    oval-ids:
+    - SV-160001r200000_rule
+  16_ce_prefixed:
+    oval-ids:
+    - xccdf_mil.disa.stig_rule_SV-160002r100000_rule

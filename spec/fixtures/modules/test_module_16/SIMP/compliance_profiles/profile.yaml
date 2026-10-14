@@ -1,0 +1,6 @@
+---
+version: 2.0.0
+profiles:
+  16_profile_test:
+    controls:
+      16_control1: true

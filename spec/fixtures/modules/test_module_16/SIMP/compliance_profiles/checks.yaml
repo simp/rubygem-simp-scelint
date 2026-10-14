@@ -1,0 +1,11 @@
+---
+version: 2.0.0
+checks:
+  16_check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_16::test_param
+      value: a string
+    ces:
+    - 16_ce_conflicting
+    - 16_ce_prefixed

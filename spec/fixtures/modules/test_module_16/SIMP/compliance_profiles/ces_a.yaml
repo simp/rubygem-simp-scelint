@@ -1,0 +1,15 @@
+---
+version: 2.0.0
+ce:
+  # Given a different rule id in ces_b.yaml.
+  16_ce_conflicting:
+    controls:
+      16_control1: true
+    oval-ids:
+    - SV-160001r100000_rule
+  # Given the same rule id in ces_b.yaml, written the other way round.
+  16_ce_prefixed:
+    controls:
+      16_control1: true
+    oval-ids:
+    - SV-160002r100000_rule
