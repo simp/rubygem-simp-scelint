@@ -81,6 +81,8 @@ class Scelint::CLI < Thor
     exit exit_code
   rescue => e
     logger.fatal e.message
+    logger.debug e.backtrace.join("\n")
+    exit 1
   end
   default_task :lint
 
