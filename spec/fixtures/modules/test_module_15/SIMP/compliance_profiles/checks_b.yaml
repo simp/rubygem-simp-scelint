@@ -1,0 +1,31 @@
+---
+version: 2.0.0
+checks:
+  15_conflicting_definition:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::split_param
+      value: from_b
+  15_identical_definition:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::identical_param
+      value: same
+  15_second_writer:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::shared_param
+      value:
+        a key: second
+    ces:
+    - 15_ce1
+  15_confined_centos:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::confined_param
+      value: centos
+    ces:
+    - 15_ce1
+    confine:
+      os.name: CentOS
+      os.release.major: '7'

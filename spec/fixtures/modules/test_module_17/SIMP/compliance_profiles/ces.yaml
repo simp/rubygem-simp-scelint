@@ -1,0 +1,10 @@
+---
+version: 2.0.0
+ce:
+  17_ce1:
+    controls:
+      17_control1: true
+  # Claimed by 17_latent_b only, and by no profile.
+  17_ce_unmapped:
+    controls:
+      17_control_unmapped: true
