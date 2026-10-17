@@ -134,9 +134,10 @@ module Scelint
     #
     # @param paths [Array<String>] Paths to look for SCE data in. Defaults to ['.']
     # @param logger [Logger] A logger to send messages to. Defaults to an instance of Logger with the log level set to INFO.
-    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO), allow_reserved_words: false)
+    def initialize(paths = ['.'], logger: Logger.new(STDOUT, level: Logger::INFO), allow_reserved_words: false, resource_identity: {})
       @log = logger
       @allow_reserved_words = allow_reserved_words
+      @resource_identity = resource_identity
       @errors = []
       @warnings = []
       @notes = []
@@ -148,6 +149,10 @@ module Scelint
       end
 
       merged_data_lint
+
+      check_duplicate_check_definitions
+      check_conflicting_values
+      check_duplicate_resources
 
       validate
     end
@@ -724,7 +729,250 @@ module Scelint
       errors << "#{file}: #{e.message} (not a hash?)"
     end
 
+    # Report checks whose definition is split across files and disagrees
+    #
+    # A check may legitimately be described by several files -- a checks file
+    # supplying the enforcement data and a map file supplying 'ces' is the normal
+    # arrangement.  What is never intentional is two files giving the same check
+    # different enforcement data, because which one wins is decided by load order.
+    #
+    # Only 'type', 'settings' and 'confine' are compared.  The additive keys
+    # ('ces', 'controls', 'identifiers', 'oval-ids', 'remediation') are how
+    # multi-file definitions are meant to work, and comparing them would report
+    # every map file in a normal data set.
+    def check_duplicate_check_definitions
+      data.checks.each do |check, component|
+        fragments = component.component[:fragments].select { |_, fragment| fragment.is_a?(Hash) }
+        next if fragments.size < 2
+
+        # Files that carry no enforcement data at all are the map files this check
+        # is supposed to be spread across, and are not what we are looking for.
+        enforcement = fragments.transform_values { |fragment| fragment.slice('type', 'settings', 'confine') }
+                               .reject { |_, fragment| fragment.empty? }
+        next if enforcement.size < 2
+
+        conflicts = conflicting_leaves(enforcement)
+
+        if conflicts.empty?
+          # Same enforcement data in more than one file.  Harmless today, but one
+          # copy will eventually be edited and the other will not.
+          notes << "Check '#{check}': identical definition in #{enforcement.keys.join(', ')}" if enforcement.values.uniq.size == 1
+          next
+        end
+
+        conflicts.each do |path, sources|
+          description = sources.map { |file, value| "#{value.inspect} in #{file}" }.join(', ')
+          errors << "Check '#{check}': conflicting '#{path.join('/')}' (#{description})"
+        end
+      end
+    end
+
+    # Report checks that disagree about the value of the same Puppet class parameter
+    #
+    # When two checks in the same profile write the same place in the same
+    # parameter, the winner is decided by the order the data happens to load in,
+    # not by anything in the data.  Checks whose confinement cannot overlap are
+    # skipped, since those are deliberate per-platform or per-role variants.
+    def check_conflicting_values
+      reported = {}
+
+      data.profiles.each do |profile, component|
+        settings = parameter_settings(data.check_mapping(component))
+
+        settings.each do |path, contributors|
+          contributors.combination(2) do |(check_a, value_a), (check_b, value_b)|
+            next if value_a == value_b
+            next if unioned?(value_a) || unioned?(value_b)
+            next if disjoint_confinement?(check_a, check_b)
+
+            key = [path, [check_a, check_b].sort]
+            next if reported.key?(key)
+
+            reported[key] = true
+            errors << "Profile '#{profile}': '#{path.join('/')}' is #{value_a.inspect} in check '#{check_a}' " \
+                      "and #{value_b.inspect} in check '#{check_b}'"
+          end
+        end
+      end
+    end
+
+    # Report checks that declare the same underlying resource twice
+    #
+    # Some Puppet class parameters are hashes whose keys are only titles: what
+    # actually identifies the resource lives in the value.  simp_windows'
+    # registry_values is the usual example, where the registry path is 'key' plus
+    # 'value' and the hash key is a human-readable label.  Two checks can then
+    # give the same registry path two different labels, and the module turns that
+    # into two resources with the same derived title, which fails to compile.
+    #
+    # Nothing in the data says which sub-keys identify a resource, so this only
+    # runs for parameters named in :resource_identity, e.g.
+    #
+    #   { 'simp_windows::registry_values' => ['key', 'value'] }
+    #
+    # A pair that shares a profile is an error, because it is broken now.  A pair
+    # that does not is a warning: it is only latent because the mapping happens to
+    # keep them apart, and the next mapping change breaks it.
+    def check_duplicate_resources
+      return if @resource_identity.nil? || @resource_identity.empty?
+
+      profiles = data.profiles.to_h.transform_values { |profile| data.check_mapping(profile).keys }
+
+      resource_index.each_value do |declarations|
+        declarations.combination(2) do |(check_a, key_a, value_a), (check_b, key_b, value_b)|
+          next if check_a == check_b
+          # The same label and the same content merges cleanly; that is one
+          # resource described twice, not two resources.
+          next if key_a == key_b && value_a == value_b
+          next if disjoint_confinement?(check_a, check_b)
+
+          shared = profiles.select { |_, checks| checks.include?(check_a) && checks.include?(check_b) }.keys
+          report_duplicate_resource(check_a, key_a, check_b, key_b, shared)
+        end
+      end
+    end
+
     private
+
+    # Group the entries of every identity-bearing parameter by the resource they declare
+    #
+    # @return [Hash{Array => Array}] Resource identity to [check, hash key, value] triples
+    def resource_index
+      index = {}
+
+      data.checks.each do |check, component|
+        next unless component.type == 'puppet-class-parameter'
+
+        settings = component.settings
+        next unless settings.is_a?(Hash) && settings['value'].is_a?(Hash)
+
+        identity_keys = @resource_identity[settings['parameter']]
+        next if identity_keys.nil?
+
+        settings['value'].each do |key, value|
+          next unless value.is_a?(Hash)
+
+          # Resource identities are compared case-insensitively.  Registry paths in
+          # particular are written with inconsistent casing and are not case
+          # sensitive, so 'HKLM\SOFTWARE' and 'HKLM\Software' are one resource.
+          identity = identity_keys.map { |field| value[field].to_s.downcase }
+          next if identity.any?(&:empty?)
+
+          (index[[settings['parameter'], identity]] ||= []) << [check, key, value]
+        end
+      end
+
+      index
+    end
+
+    # Record a duplicate resource declaration at the appropriate severity
+    #
+    # @param check_a [String] The name of a check
+    # @param key_a [String] The hash key it declares the resource under
+    # @param check_b [String] The name of a check
+    # @param key_b [String] The hash key it declares the resource under
+    # @param shared [Array<String>] Profiles containing both checks
+    # @return [void]
+    def report_duplicate_resource(check_a, key_a, check_b, key_b, shared)
+      declarations = "'#{key_a}' in check '#{check_a}' and '#{key_b}' in check '#{check_b}'"
+
+      if shared.empty?
+        warnings << "Duplicate resource declared by #{declarations}. " \
+                    'No profile contains both checks today, so this does not fail yet.'
+      else
+        errors << "Profile '#{shared.first}': duplicate resource declared by #{declarations}"
+      end
+    end
+
+    # Collect every leaf of every mapped check's settings, keyed by location
+    #
+    # @param checks [ComplianceEngine::Checks] The checks to collect from
+    # @return [Hash{Array<String> => Array}] Leaf location to [check name, value] pairs
+    def parameter_settings(checks)
+      result = {}
+
+      checks.each do |check, component|
+        next unless component.type == 'puppet-class-parameter'
+
+        settings = component.settings
+        next unless settings.is_a?(Hash) && settings['parameter'].is_a?(String)
+
+        leaves(settings['value'], [settings['parameter']]).each do |path, value|
+          (result[path] ||= []) << [check, value]
+        end
+      end
+
+      result
+    end
+
+    # Flatten a value into its leaves, keyed by the path taken to reach each one
+    #
+    # @param value [Object] The value to flatten
+    # @param prefix [Array<String>] The path to the value
+    # @param result [Hash] The accumulator
+    # @return [Hash{Array<String> => Object}] Leaf location to value
+    def leaves(value, prefix = [], result = {})
+      if value.is_a?(Hash)
+        value.each { |key, item| leaves(item, prefix + [key.to_s], result) }
+      else
+        result[prefix] = value
+      end
+
+      result
+    end
+
+    # Find leaves that more than one file sets to different values
+    #
+    # @param fragments [Hash{String => Hash}] File name to fragment
+    # @return [Hash{Array<String> => Array}] Leaf location to [file, value] pairs
+    def conflicting_leaves(fragments)
+      by_path = {}
+
+      fragments.each do |file, fragment|
+        leaves(fragment).each { |path, value| (by_path[path] ||= []) << [file, value] }
+      end
+
+      by_path.select do |_, sources|
+        values = sources.map(&:last)
+        values.uniq.size > 1 && values.none? { |value| unioned?(value) }
+      end
+    end
+
+    # Return true if two of these values would be combined rather than one winning
+    #
+    # Hashes are merged key by key, and arrays are unioned, so two checks
+    # contributing different arrays to the same location both get their way.  That
+    # is the documented behaviour rather than a conflict.  Only scalars are
+    # decided by load order.
+    #
+    # @param value [Object] A value from the settings of a check
+    # @return [Boolean]
+    def unioned?(value)
+      value.is_a?(Array)
+    end
+
+    # Return true if two checks can be shown never to apply at the same time
+    #
+    # Two confinements are disjoint when they constrain the same fact to sets of
+    # values that do not overlap.  Negated values ('!foo') are not interpreted, so
+    # a confinement using them is never treated as disjoint.
+    #
+    # @param check_a [String] The name of a check
+    # @param check_b [String] The name of a check
+    # @return [Boolean] true only when the two provably cannot overlap
+    def disjoint_confinement?(check_a, check_b)
+      confine_a = data.checks[check_a]&.[]('confine')
+      confine_b = data.checks[check_b]&.[]('confine')
+      return false unless confine_a.is_a?(Hash) && confine_b.is_a?(Hash)
+
+      (confine_a.keys & confine_b.keys).any? do |fact|
+        values_a = Array(confine_a[fact]).map(&:to_s)
+        values_b = Array(confine_b[fact]).map(&:to_s)
+        next false if (values_a + values_b).any? { |value| value.start_with?('!') }
+
+        !values_a.intersect?(values_b)
+      end
+    end
 
     # Merge a ComplianceEngine::Collection object into a Hash
     #
