@@ -1,0 +1,14 @@
+---
+version: 2.0.0
+checks:
+  13_check_bad_remediation:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_13::test_param
+      value: a string
+    ces:
+    - 13_ce1
+    remediation:
+      # Each remediation section must be an array of hashes.
+      disabled: not an array
+      risk: not an array
