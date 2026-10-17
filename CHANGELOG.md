@@ -1,3 +1,7 @@
+### 0.7.0 / 2026-08-20
+* Report checks whose definition is split across files and disagrees
+* Report checks that disagree about the value of the same Puppet class parameter
+
 ### 0.6.1 / 2026-08-20
 * Support compliance_engine 1.x
 

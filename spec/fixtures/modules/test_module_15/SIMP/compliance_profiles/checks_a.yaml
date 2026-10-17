@@ -1,0 +1,41 @@
+---
+version: 2.0.0
+checks:
+  # Defined again in checks_b.yaml with a different value.
+  15_conflicting_definition:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::split_param
+      value: from_a
+    ces:
+    - 15_ce1
+  # Defined again in checks_b.yaml with the same value.
+  15_identical_definition:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::identical_param
+      value: same
+    ces:
+    - 15_ce1
+  # Disagrees with 15_second_writer below about the same parameter.
+  15_first_writer:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::shared_param
+      value:
+        a key: first
+    ces:
+    - 15_ce1
+  # Disagrees with 15_confined_centos, but cannot apply at the same time.
+  # The confinement reuses a fact combination that test_module_01 already
+  # exercises, so it adds no new combinations to the confined pass in #validate.
+  15_confined_redhat:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_15::confined_param
+      value: redhat
+    ces:
+    - 15_ce1
+    confine:
+      os.name: RedHat
+      os.release.major: '7'
