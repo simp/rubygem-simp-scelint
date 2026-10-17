@@ -1,0 +1,25 @@
+---
+version: 2.0.0
+checks:
+  # Reachable: shares 14_ce1 -> 14_control1 with the profile.
+  14_check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_14::test_param
+      value: a string
+    ces:
+    - 14_ce1
+  # Orphaned: its only CE is claimed by no profile.
+  14_orphan_via_ce:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_14::orphan_param
+      value: another string
+    ces:
+    - 14_ce_unmapped
+  # Orphaned: no ces, no controls, referenced by no profile.
+  14_orphan_unreferenced:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_14::unreferenced_param
+      value: a third string

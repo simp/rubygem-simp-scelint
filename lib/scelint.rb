@@ -149,6 +149,8 @@ module Scelint
 
       merged_data_lint
 
+      check_orphaned_checks
+
       validate
     end
 
@@ -724,7 +726,106 @@ module Scelint
       errors << "#{file}: #{e.message} (not a hash?)"
     end
 
+    # Report checks that no profile can select
+    #
+    # A check is reachable if some profile references it directly, shares a
+    # control with it, shares a CE with it, or is connected to it through the
+    # controls on a CE.  A check that is reachable from no profile can never be
+    # enforced, and is usually a leftover from a benchmark update.
+    #
+    # @note Reachability is deliberately computed from unconfined data.  A check
+    #   that is only reachable under some confinement is still reachable, and
+    #   reporting it here would make the result depend on the facts, enforcement
+    #   tolerance, and environment data that happen to be in play.
+    #
+    # @note These are reported as notes rather than warnings because a module may
+    #   legitimately ship checks that are only mapped by profiles in a different
+    #   module.  Run scelint across the whole modulepath to see the real picture.
+    def check_orphaned_checks
+      # Without profiles nothing is reachable, which is already reported by
+      # #validate.  Repeating it once per check would be noise.
+      return if data.profiles.keys.empty?
+
+      profiles = data.profiles.each_value.map { |profile| unconfined(profile) }
+
+      data.checks.each_key do |check|
+        next if reachable?(check, profiles)
+
+        notes << "Check '#{check}' is not reachable from any profile"
+      end
+    end
+
     private
+
+    # Merge every fragment of a component, ignoring confinement
+    #
+    # @param component [ComplianceEngine::Component] The component to merge
+    # @return [Hash] The merged data
+    def unconfined(component)
+      @unconfined ||= {}
+      @unconfined[component.object_id] ||= begin
+        fragments = component.component[:fragments].each_value.select { |fragment| fragment.is_a?(Hash) }
+
+        # The overwhelming majority of components have a single fragment.  Merging
+        # copies so DeepMerge cannot reach back into the loaded data; with one
+        # fragment there is nothing to merge, so the copy is not needed either.
+        if fragments.size == 1
+          fragments.first
+        else
+          fragments.reduce({}) { |result, fragment| DeepMerge.deep_merge!(Marshal.load(Marshal.dump(fragment)), result) }
+        end
+      end
+    end
+
+    # Return the keys of a mapping hash whose value is truthy
+    #
+    # @param mapping [Hash, Object] A hash of names to booleans
+    # @return [Array<String>] The enabled names
+    def enabled(mapping)
+      return [] unless mapping.is_a?(Hash)
+
+      mapping.select { |_, value| value }.keys
+    end
+
+    # Return true if any profile can select the given check
+    #
+    # @param check [String] The name of the check
+    # @param profiles [Array<Hash>] Unconfined profile data
+    # @return [Boolean]
+    #
+    # @note This mirrors the correlation rules in ComplianceEngine::Data#mapping?
+    def reachable?(check, profiles)
+      check_data = unconfined(data.checks[check])
+      check_controls = enabled(check_data['controls'])
+      check_ces = check_data['ces'].is_a?(Array) ? check_data['ces'] : []
+
+      # Controls carried by the CEs this check claims
+      ce_controls = check_ces.flat_map { |ce| controls_for(ce) }
+
+      profiles.any? do |profile|
+        profile_controls = enabled(profile['controls'])
+        profile_ces = enabled(profile['ces'])
+
+        next true if enabled(profile['checks']).include?(check)
+        next true if check_controls.intersect?(profile_controls)
+        next true if check_ces.intersect?(profile_ces)
+        next true if ce_controls.intersect?(profile_controls)
+
+        profile_ces.any? { |ce| controls_for(ce).intersect?(check_controls) }
+      end
+    end
+
+    # Return the enabled controls carried by a CE
+    #
+    # @param ce [String] The name of the CE
+    # @return [Array<String>] The enabled control names, empty if the CE is undefined
+    def controls_for(ce)
+      @controls_for ||= {}
+      @controls_for[ce] ||= begin
+        component = data.ces[ce]
+        component.nil? ? [] : enabled(unconfined(component)['controls'])
+      end
+    end
 
     # Merge a ComplianceEngine::Collection object into a Hash
     #
