@@ -1,0 +1,9 @@
+---
+version: 2.0.0
+profiles:
+  18_profile_test:
+    controls:
+      18_control1: true
+    ces:
+      # Must be a boolean.
+      18_ce1: 'yes'
