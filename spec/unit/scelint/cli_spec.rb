@@ -69,6 +69,24 @@ RSpec.describe Scelint::CLI do
         expect(run_cli(['--strict', warning_module_path])).to eq(1)
       end
     end
+
+    context 'when the data cannot be merged' do
+      let(:broken_module_path) { File.join(fixtures_dir, 'broken_module_00') }
+
+      it 'exits 1' do
+        expect(run_cli([broken_module_path])).to eq(1)
+      end
+    end
+
+    context 'when linting raises an exception' do
+      before(:each) do
+        allow(Scelint::Lint).to receive(:new).and_raise(StandardError, 'boom')
+      end
+
+      it 'exits 1' do
+        expect(run_cli([clean_module_path])).to eq(1)
+      end
+    end
   end
 
   describe '--quiet flag' do
