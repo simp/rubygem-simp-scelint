@@ -5,10 +5,10 @@ require 'spec_helper'
 RSpec.describe Scelint::Lint do
   # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
-  let(:lint_files) { { '04' => 37, '11' => 2 } }
-  let(:lint_errors) { { '12' => 2 } }
+  let(:lint_files) { { '04' => 37, '11' => 2, '15' => 4 } }
+  let(:lint_errors) { { '12' => 2, '15' => 2 } }
   let(:lint_warnings) { { '04' => 17 } }
-  let(:lint_notes) { { '11' => 1 } }
+  let(:lint_notes) { { '11' => 1, '15' => 1 } }
 
   test_modules = Dir.glob(File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_*'))
   test_modules.each do |test_module|
@@ -44,6 +44,28 @@ RSpec.describe Scelint::Lint do
         pp lint.notes if lint.notes.count != (lint_notes[index] || 0)
         expect(lint.notes.count).to eq(lint_notes[index] || 0)
       end
+    end
+  end
+
+  context 'with checks that disagree about a value' do
+    subject(:lint) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_15')])
+    end
+
+    it 'reports a check whose definition is split across files and disagrees' do
+      expect(lint.errors).to include(a_string_matching(%r{'15_conflicting_definition': conflicting 'settings/value'}))
+    end
+
+    it 'notes a check defined identically in more than one file' do
+      expect(lint.notes).to include(a_string_matching(%r{'15_identical_definition': identical definition}))
+    end
+
+    it 'reports two checks that write the same parameter differently' do
+      expect(lint.errors).to include(a_string_matching(%r{'test_module_15::shared_param/a key'}))
+    end
+
+    it 'ignores checks whose confinement cannot overlap' do
+      expect(lint.errors).not_to include(a_string_matching(%r{confined_param}))
     end
   end
 
