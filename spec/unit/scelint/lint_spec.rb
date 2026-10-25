@@ -7,7 +7,7 @@ RSpec.describe Scelint::Lint do
   # Exceptions are listed below.
   let(:lint_files) { { '04' => 37, '11' => 2 } }
   let(:lint_errors) { { '12' => 2 } }
-  let(:lint_warnings) { { '04' => 17 } }
+  let(:lint_warnings) { { '04' => 17, '18' => 6 } }
   let(:lint_notes) { { '11' => 1 } }
 
   test_modules = Dir.glob(File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_*'))
@@ -44,6 +44,40 @@ RSpec.describe Scelint::Lint do
         pp lint.notes if lint.notes.count != (lint_notes[index] || 0)
         expect(lint.notes.count).to eq(lint_notes[index] || 0)
       end
+    end
+  end
+
+  context 'with data that violates the SCE schema' do
+    subject(:lint) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_18')])
+    end
+
+    let(:unvalidated) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_00')])
+    end
+
+    it 'reports a non-string oval-id' do
+      expect(lint.warnings).to include(a_string_matching(%r{`/ce/18_ce1/oval-ids/0` is not a string}))
+    end
+
+    it 'reports a non-boolean profile ce mapping' do
+      expect(lint.warnings).to include(a_string_matching(%r{`/profiles/18_profile_test/ces/18_ce1` is not a boolean}))
+    end
+
+    it 'says nothing about data that satisfies the schema' do
+      expect(unvalidated.warnings).to be_empty
+    end
+
+    # ComplianceEngine raises while resolving Hiera data for a check with no
+    # settings (simp/rubygem-simp-compliance_engine#137), so this cannot be
+    # driven through a fixture module yet.
+    it 'reports a check that declares a type but no settings' do
+      document = { 'version' => '2.0.0', 'checks' => { 'a_check' => { 'type' => 'puppet-class-parameter' } } }
+
+      unvalidated.warnings.clear
+      unvalidated.check_schema('f', document)
+
+      expect(unvalidated.warnings).to include(a_string_matching(%r{missing required properties: settings}))
     end
   end
 

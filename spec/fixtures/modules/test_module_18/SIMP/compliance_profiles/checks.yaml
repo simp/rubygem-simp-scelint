@@ -1,0 +1,10 @@
+---
+version: 2.0.0
+checks:
+  18_check1:
+    type: puppet-class-parameter
+    settings:
+      parameter: test_module_18::test_param
+      value: a string
+    ces:
+    - 18_ce1
