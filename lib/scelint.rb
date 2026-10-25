@@ -149,7 +149,31 @@ module Scelint
 
       merged_data_lint
 
-      validate
+      validate_hieradata
+
+      check_mappings
+    end
+
+    attr_writer :min_ces_per_check, :max_ces_per_check, :min_checks_per_ce, :max_checks_per_ce
+
+    def min_ces_per_check
+      return @min_ces_per_check unless @min_ces_per_check.nil?
+      @min_ces_per_check = 1
+    end
+
+    def max_ces_per_check
+      return @max_ces_per_check unless @max_ces_per_check.nil?
+      @max_ces_per_check = 10
+    end
+
+    def min_checks_per_ce
+      return @min_checks_per_ce unless @min_checks_per_ce.nil?
+      @min_checks_per_ce = 1
+    end
+
+    def max_checks_per_ce
+      return @max_checks_per_ce unless @max_checks_per_ce.nil?
+      @max_checks_per_ce = 10
     end
 
     # Return an array of all the files found in the loaded data
@@ -664,7 +688,7 @@ module Scelint
     # This method performs validation in two stages:
     # 1. Unconfined: Checks if Hiera data exists for each profile.
     # 2. Confined: Checks if Hiera data exists for each profile with specific facts.
-    def validate
+    def validate_hieradata
       if data.profiles.keys.empty?
         notes << 'No profiles found, unable to validate Hiera data'
         return nil
@@ -740,6 +764,16 @@ module Scelint
       check_ce('merged data', merge(data.ces))
       check_checks('merged data', merge(data.checks))
       check_controls('merged data', merge(data.controls))
+    end
+
+    def check_mappings
+      return unless min_checks_per_ce || max_checks_per_ce
+
+      data.ces.each do |ce, value|
+        checks = data.check_mapping(value)
+        warnings << "CE '#{ce}': Minimum checks not satisfied (#{checks.count} < #{min_checks_per_ce})" if min_checks_per_ce > 0 && checks.count < min_checks_per_ce
+        warnings << "CE '#{ce}': Maximum checks exceeded (#{checks.count} > #{max_checks_per_ce})" if max_checks_per_ce > 0 && checks.count > max_checks_per_ce
+      end
     end
   end
 end
