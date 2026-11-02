@@ -314,6 +314,11 @@ module Scelint
     def check_imported_data(file, file_data)
       ok = ['checktext', 'fixtext']
 
+      unless file_data.is_a?(Hash)
+        warnings << "#{file}: bad imported_data '#{file_data}'"
+        return
+      end
+
       file_data.each do |key, value|
         warnings << "#{file}: unexpected key '#{key}'" unless ok.include?(key)
 
@@ -816,11 +821,17 @@ module Scelint
     end
 
     # Perform lint checks on merged data
+    #
+    # @note Unlike #lint, this has no file to attribute a failure to, so any
+    #   unexpected exception is reported against 'merged data' rather than
+    #   escaping to the caller.
     def merged_data_lint
       check_profiles('merged data', merge(data.profiles, 'profile'))
       check_ce('merged data', merge(data.ces, 'CE'))
       check_checks('merged data', merge(data.checks, 'check'))
       check_controls('merged data', merge(data.controls, 'control'))
+    rescue => e
+      errors << "merged data: #{e.message}"
     end
   end
 end

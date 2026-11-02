@@ -6,8 +6,8 @@ RSpec.describe Scelint::Lint do
   # Each test assumes 3 files, no errors, no warnings, no notes.
   # Exceptions are listed below.
   let(:lint_files) { { '04' => 37, '11' => 2 } }
-  let(:lint_errors) { { '12' => 2 } }
-  let(:lint_warnings) { { '04' => 17 } }
+  let(:lint_errors) { { '12' => 2, '13' => 4 } }
+  let(:lint_warnings) { { '04' => 17, '13' => 2 } }
   let(:lint_notes) { { '11' => 1 } }
 
   test_modules = Dir.glob(File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_*'))
@@ -44,6 +44,19 @@ RSpec.describe Scelint::Lint do
         pp lint.notes if lint.notes.count != (lint_notes[index] || 0)
         expect(lint.notes.count).to eq(lint_notes[index] || 0)
       end
+    end
+  end
+
+  context 'when the merged-data pass raises' do
+    let(:lint) do
+      described_class.new([File.join(File.expand_path('../../fixtures', __dir__), 'modules', 'test_module_00')])
+    end
+
+    it 'reports the exception against merged data instead of raising' do
+      allow(lint).to receive(:check_checks).and_raise(StandardError, 'boom')
+
+      expect { lint.send(:merged_data_lint) }.not_to raise_error
+      expect(lint.errors).to include('merged data: boom')
     end
   end
 
