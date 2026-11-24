@@ -527,13 +527,19 @@ module Scelint
 
     # Check a value
     #
-    # @param _file [String] The path to the file being checked (currently unused)
-    # @param _check [String] The name of the check (currently unused)
-    # @param _value [Object] The value to be validated (currently unused)
-    # @return [Boolean] Always returns true (currently)
-    def check_value(_file, _check, _value) # rubocop:disable Naming/PredicateMethod
-      # value could be anything
-      true
+    # @param file [String] The path to the file being checked
+    # @param check [String] The name of the check
+    # @param value [Object] The value to be validated
+    def check_value(file, check, value)
+      if value.nil?
+        errors << "#{file} (check '#{check}'): value is null, which overrides lower Hiera layers with the " \
+                  "parameter's default; remove the check to leave the parameter alone, or use the module's removal value"
+        return
+      end
+
+      return unless nested_nil?(value)
+
+      warnings << "#{file} (check '#{check}'): value contains a nested null"
     end
 
     # Check settings
@@ -849,6 +855,18 @@ module Scelint
       rule_names = ->(ids) { ids.map { |id| id.sub(%r{\Axccdf_[^_]+_rule_}, '') }.uniq.sort }
 
       rule_names.call(ids_a) == rule_names.call(ids_b)
+    end
+
+    # Whether a Hash or Array contains nil at any depth
+    #
+    # @param value [Object] The value to search
+    # @return [Boolean]
+    def nested_nil?(value)
+      case value
+      when Hash then value.values.any? { |v| v.nil? || nested_nil?(v) }
+      when Array then value.any? { |v| v.nil? || nested_nil?(v) }
+      else false
+      end
     end
 
     # Merge a ComplianceEngine::Collection object into a Hash
