@@ -1,3 +1,9 @@
+### 0.8.0 / 2026-11-24
+* **BREAKING:** Report an error when a check's `value` is `null`. A `null`
+  overrides lower Hiera layers with the parameter's default. Remove the
+  check to leave the parameter alone, or use the module's removal value.
+* Report a warning when a check's `value` contains a nested `null`
+
 ### 0.7.0 / 2026-11-02
 * **BREAKING:** Report an error when files give a CE `oval-ids` for different
   rules, as happens when two revisions of a benchmark ship together. Remove
